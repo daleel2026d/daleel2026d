@@ -1,0 +1,48 @@
+name: Build Flutter iOS IPA (Unsigned)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Update Bundle ID
+        run: |
+          find ios -name "project.pbxproj" -exec sed -i '' 's/com.uni_guide_app/com.omar.uniguide/g' {} +
+
+      - name: Build iOS App
+        run: flutter build ios --release --no-codesign
+
+      - name: Fix Info.plist & Package IPA
+        run: |
+          mkdir -p Payload
+          APP_PATH="build/ios/iphoneos/Runner.app"
+          
+          # حقن اتجاهات الشاشة لتفادي خطأ 90474 وتفعيل وضع ملء الشاشة
+          plutil -insert UISupportedInterfaceOrientations -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist" || plutil -replace UISupportedInterfaceOrientations -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist"
+          
+          plutil -insert "UISupportedInterfaceOrientations~ipad" -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist" || plutil -replace "UISupportedInterfaceOrientations~ipad" -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist"
+          
+          plutil -replace UIRequiresFullScreen -bool YES "$APP_PATH/Info.plist" || plutil -insert UIRequiresFullScreen -bool YES "$APP_PATH/Info.plist"
+          
+          cp -r "$APP_PATH" Payload/
+          zip -r -y daleel-unsigned.ipa Payload
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daleel-unsigned-ipa
+          path: daleel-unsigned.ipa
