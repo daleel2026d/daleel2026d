@@ -115,7 +115,6 @@ jobs:
              </ArchiveAction>
           </Scheme>"""
           
-          # إزالة أي مسافات بادئة لضمان صحة ملف الـ XML
           clean_lines = [line.lstrip() for line in scheme.splitlines()]
           final_xml = "\n".join(clean_lines).strip()
           
@@ -128,12 +127,23 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Update Bundle ID
+      - name: Configure Project & Team ID
         run: |
-          find ios -name "project.pbxproj" -exec sed -i '' 's/com.uni_guide_app/com.omar.uniguide/g' {} +
+          # استبدال معرّف الحزمة وحقن معرّف الفريق 48Z9H342HM
+          python3 -c "
+          p = 'ios/Runner.xcodeproj/project.pbxproj'
+          with open(p, 'r') as f: c = f.read()
+          c = c.replace('com.uni_guide_app', 'com.omar.uniguide')
+          c = c.replace('DEVELOPMENT_TEAM = \"\";', 'DEVELOPMENT_TEAM = 48Z9H342HM;')
+          if 'DEVELOPMENT_TEAM = 48Z9H342HM;' not in c:
+              c = c.replace('PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;', 'PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;\n\t\t\t\tDEVELOPMENT_TEAM = 48Z9H342HM;')
+          with open(p, 'w') as f: f.write(c)
+          "
+          echo "Bundle ID & Team ID configured successfully!"
 
       - name: Build iOS App
-        run: flutter build ios --release --no-codesign
+        run: |
+          flutter build ios --release --no-codesign -v
 
       - name: Fix Info.plist & Package IPA
         run: |
