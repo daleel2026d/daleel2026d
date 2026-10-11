@@ -16,119 +16,76 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Precache Flutter iOS Engine
-        run: flutter precache --ios
-
-      - name: Disable Swift Package Manager in Flutter
-        run: flutter config --no-enable-swift-package-manager
-
-      - name: Setup Xcode Schemes and Workspace
+      - name: Disable SPM and Precache iOS
         run: |
-          python3 -c '
-          import os
-          os.makedirs("ios/Runner.xcodeproj/xcshareddata/xcschemes", exist_ok=True)
-          os.makedirs("ios/Runner.xcodeproj/project.xcworkspace", exist_ok=True)
-          os.makedirs("ios/Runner.xcworkspace/xcshareddata/xcschemes", exist_ok=True)
+          flutter config --no-enable-swift-package-manager
+          flutter precache --ios
 
-          with open("ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata", "w") as f:
-              f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Workspace version=\"1.0\"><FileRef location=\"self:\"></FileRef></Workspace>\n")
+      - name: Setup iOS Environment and Missing Files
+        run: |
+          python3 -c "
+          import os, base64
 
-          with open("ios/Runner.xcworkspace/contents.xcworkspacedata", "w") as f:
-              f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Workspace version=\"1.0\"><FileRef location=\"group:Runner.xcodeproj\"></FileRef></Workspace>\n")
+          # 1. انشاء المجلدات
+          os.makedirs('ios/Runner.xcodeproj/xcshareddata/xcschemes', exist_ok=True)
+          os.makedirs('ios/Runner.xcodeproj/project.xcworkspace', exist_ok=True)
+          os.makedirs('ios/Runner.xcworkspace/xcshareddata/xcschemes', exist_ok=True)
+          os.makedirs('assets/icon', exist_ok=True)
 
-          scheme = """<?xml version="1.0" encoding="UTF-8"?>
-          <Scheme LastUpgradeVersion="1510" version="1.3">
-             <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+          # 2. ملفات مساحة العمل Workspace
+          ws_inner = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Workspace version=\"1.0\"><FileRef location=\"self:\"></FileRef></Workspace>\n'
+          ws_outer = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Workspace version=\"1.0\"><FileRef location=\"group:Runner.xcodeproj\"></FileRef></Workspace>\n'
+          with open('ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata', 'w') as f:
+              f.write(ws_inner)
+          with open('ios/Runner.xcworkspace/contents.xcworkspacedata', 'w') as f:
+              f.write(ws_outer)
+
+          # 3. مخطط Runner Scheme
+          scheme_content = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <Scheme LastUpgradeVersion=\"1510\" version=\"1.3\">
+             <BuildAction parallelizeBuildables=\"YES\" buildImplicitDependencies=\"YES\">
                 <BuildActionEntries>
-                   <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
-                      <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="97C146ED1CF9000F007C117D" BuildableName="Runner.app" BlueprintName="Runner" ReferencedContainer="container:Runner.xcodeproj">
+                   <BuildActionEntry buildForTesting=\"YES\" buildForRunning=\"YES\" buildForProfiling=\"YES\" buildForArchiving=\"YES\" buildForAnalyzing=\"YES\">
+                      <BuildableReference BuildableIdentifier=\"primary\" BlueprintIdentifier=\"97C146ED1CF9000F007C117D\" BuildableName=\"Runner.app\" BlueprintName=\"Runner\" ReferencedContainer=\"container:Runner.xcodeproj\">
                       </BuildableReference>
                    </BuildActionEntry>
                 </BuildActionEntries>
              </BuildAction>
-             <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES">
+             <ArchiveAction buildConfiguration=\"Release\" revealArchiveInOrganizer=\"YES\">
              </ArchiveAction>
-          </Scheme>"""
-          clean_scheme = "\n".join([line.strip() for line in scheme.splitlines() if line.strip()]) + "\n"
-          with open("ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme", "w") as f:
-              f.write(clean_scheme)
-          with open("ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme", "w") as f:
-              f.write(clean_scheme)
+          </Scheme>'''
+          clean_scheme = '\n'.join([line.strip() for line in scheme_content.splitlines() if line.strip()]) + '\n'
+          for p in ['ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme', 'ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme']:
+              with open(p, 'w') as f:
+                  f.write(clean_scheme)
 
-          plist = """<?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
+          # 4. ملف ادارة المخططات Plist
+          plist_content = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+          <plist version=\"1.0\">
           <dict><key>SchemeUserState</key><dict><key>Runner.xcscheme_^#shared#^_</key><dict><key>isShown</key><true/><key>orderHint</key><integer>0</integer></dict></dict></dict>
-          </plist>"""
-          clean_plist = "\n".join([line.strip() for line in plist.splitlines() if line.strip()]) + "\n"
-          with open("ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist", "w") as f:
-              f.write(clean_plist)
-          with open("ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist", "w") as f:
-              f.write(clean_plist)
-          print("Schemes & Workspace configured successfully!")
-          '
+          </plist>'''
+          clean_plist = '\n'.join([line.strip() for line in plist_content.splitlines() if line.strip()]) + '\n'
+          for p in ['ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist', 'ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist']:
+              with open(p, 'w') as f:
+                  f.write(clean_plist)
 
-      - name: Ensure iOS Podfile Exists
-        run: |
-          if [ ! -f "ios/Podfile" ]; then
-            echo "Creating standard Flutter Podfile..."
-            cat << 'EOF' > ios/Podfile
-platform :ios, '15.0'
-ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+          # 5. انشاء Podfile تلقائيا اذا لم يكن موجودا
+          podfile_path = 'ios/Podfile'
+          if not os.path.exists(podfile_path):
+              podfile_b64 = 'cGxhdGZvcm0gOmlvcywgJzE1LjAnCkVOVlsnQ09DT0FQT0RTX0RJU0FCTEVfU1RBVFMnXSA9ICd0cnVlJwoKcHJvamVjdCAnUnVubmVyJywgewogICdEZWJ1ZycgPT4gOmRlYnVnLAogICdQcm9maWxlJyA9PiA6cmVsZWFzZSwKICAnUmVsZWFzZScgPT4gOnJlbGVhc2UsCn0KCmRlZiBmbHV0dGVyX3Jvb3QKICBnZW5lcmF0ZWRfeGNvZGVfYnVpbGRfc2V0dGluZ3NfcGF0aCA9IEZpbGUuZXhwYW5kX3BhdGgoRmlsZS5qb2luKCcuLicsICdGbHV0dGVyJywgJ0dlbmVyYXRlZC54Y2NvbmZpZycpLCBfX0ZJTEVfXykKICB1bmxlc3MgRmlsZS5leGlzdD8oZ2VuZXJhdGVkX3hjb2RlX2J1aWxkX3NldHRpbmdzX3BhdGgpCiAgICByYWlzZSAiI3tnZW5lcmF0ZWRfeGNvZGVfYnVpbGRfc2V0dGluZ3NfcGF0aH0gbXVzdCBleGlzdC4gSWYgeW91J3JlIHJ1bm5pbmcgcG9kIGluc3RhbGwgbWFudWFsbHksIG1ha2Ugc3VyZSBmbHV0dGVyIHB1YiBnZXQgaGFzIGV4ZWN1dGVkIGZpcnN0IgogIGVuZAoKICBGaWxlLmZvcmVhY2goZ2VuZXJhdGVkX3hjb2RlX2J1aWxkX3NldHRpbmdzX3BhdGgpIGRvIHxsaW5lfAogICAgbWF0Y2hlcyA9IGxpbmUubWF0Y2goL0ZMVVRURVJfUk9PVFw9KC4qKS8pCiAgICByZXR1cm4gbWF0Y2hlc1sxXS5zdHJpcCBpZiBtYXRjaGVzCiAgZW5kCiAgcmFpc2UgIkZMVVRURVJfUk9PVCBub3QgZm91bmQgaW4gI3tnZW5lcmF0ZWRfeGNvZGVfYnVpbGRfc2V0dGluZ3NfcGF0aH0uIFRyeSBkZWxldGluZyBHZW5lcmF0ZWQueGNjb25maWcgYW5kIHJ1bm5pbmcgZmx1dHRlciBwdWIgZ2V0IgplbmQKCnJlcXVpcmUgRmlsZS5leHBhbmRfcGF0aChGaWxlLmpvaW4oJ3BhY2thZ2VzJywgJ2ZsdXR0ZXJfdG9vbHMnLCAnYmluJywgJ3BvZGhlbHBlcicpLCBmbHV0dGVyX3Jvb3QpCgpmbHV0dGVyX2lvc19wb2RmaWxlX3NldHVwCgp0YXJnZXQgJ1J1bm5lcicgZG8KICB1c2VfZnJhbWV3b3JrcyEKICB1c2VfbW9kdWxhcl9oZWFkZXJzIQoKICBmbHV0dGVyX2luc3RhbGxfYWxsX2lvc19wb2RzIEZpbGUuZGlybmFtZShGaWxlLnJlYWxwYXRoKF9fRklMRV9fKSkKZW5kCgpwb3N0X2luc3RhbGwgZG8gfGluc3RhbGxlcnwKICBpbnN0YWxsZXIucG9kc19wcm9qZWN0LnRhcmdldHMuZWFjaCBkbyB8dGFyZ2V0fAogICAgZmx1dHRlcl9hZGRpdGlvbmFsX2lvc19idWlsZF9zZXR0aW5ncyh0YXJnZXQpCiAgICB0YXJnZXQuYnVpbGRfY29uZmlndXJhdGlvbnMuZWFjaCBkbyB8Y29uZmlnfAogICAgICBjb25maWcuYnVpbGRfc2V0dGluZ3NbJ0lQSE9ORU9TX0RFUExPWU1FTlRfVEFSR0VUJ10gPSAnMTUuMCcKICAgIGVuZAogIGVuZAplbmQK'
+              with open(podfile_path, 'wb') as f:
+                  f.write(base64.b64decode(podfile_b64))
 
-project 'Runner', {
-  'Debug' => :debug,
-  'Profile' => :release,
-  'Release' => :release,
-}
+          # 6. انشاء صورة احتياطية اذا كانت مفقودة
+          icon_path = 'assets/icon/app_icon.png'
+          if not os.path.exists(icon_path):
+              icon_b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+              with open(icon_path, 'wb') as f:
+                  f.write(base64.b64decode(icon_b64))
 
-def flutter_root
-  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-  unless File.exist?(generated_xcode_build_settings_path)
-    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get has executed first"
-  end
-
-  File.foreach(generated_xcode_build_settings_path) do |line|
-    matches = line.match(/FLUTTER_ROOT\=(.*)/)
-    return matches[1].strip if matches
-  end
-  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig and running flutter pub get"
-end
-
-require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-
-flutter_ios_podfile_setup
-
-target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
-
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-end
-
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-    target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-    end
-  end
-end
-EOF
-          fi
-
-      - name: Ensure Missing Assets Exist
-        run: |
-          mkdir -p assets/icon
-          if [ ! -f "assets/icon/app_icon.png" ]; then
-            echo "Generating fallback app_icon.png to prevent asset bundling failure..."
-            python3 -c '
-            import base64
-            png_data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
-            with open("assets/icon/app_icon.png", "wb") as f:
-                f.write(base64.b64decode(png_data))
-            '
-          fi
+          print('All setup executed cleanly without errors!')
+          "
 
       - name: Install Dependencies
         run: flutter pub get
