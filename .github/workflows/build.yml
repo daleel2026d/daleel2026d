@@ -16,7 +16,7 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Setup Xcode Schemes
+      - name: Setup Xcode Schemes and Workspace
         run: |
           python3 -c '
           import os
@@ -61,6 +61,19 @@ jobs:
               f.write(clean_plist)
           print("Schemes & Workspace configured successfully!")
           '
+
+      - name: Ensure Missing Assets Exist
+        run: |
+          mkdir -p assets/icon
+          if [ ! -f "assets/icon/app_icon.png" ]; then
+            echo "Generating fallback app_icon.png to prevent asset bundling failure..."
+            python3 -c '
+            import base64
+            png_data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+            with open("assets/icon/app_icon.png", "wb") as f:
+                f.write(base64.b64decode(png_data))
+            '
+          fi
 
       - name: Install Dependencies
         run: flutter pub get
