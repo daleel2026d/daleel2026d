@@ -16,184 +16,74 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Restore Full Xcode Schemes & Workspace Structure
+      - name: Prepare Xcode Directories
         run: |
-          # 1. إنشاء كافة المجلدات المطلوبة لـ Xcode ومساحة العمل
           mkdir -p ios/Runner.xcodeproj/xcshareddata/xcschemes
           mkdir -p ios/Runner.xcodeproj/project.xcworkspace
           mkdir -p ios/Runner.xcworkspace/xcshareddata/xcschemes
 
-          # 2. إنشاء بيانات مساحة العمل الداخلية لمشروع Xcode
           cat << 'EOF' > ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 <?xml version="1.0" encoding="UTF-8"?>
-<Workspace
-   version = "1.0">
-   <FileRef
-      location = "self:">
-   </FileRef>
+<Workspace version="1.0">
+   <FileRef location="self:"></FileRef>
 </Workspace>
 EOF
 
-          # 3. إنشاء بيانات مساحة العمل العامة Runner.xcworkspace
           cat << 'EOF' > ios/Runner.xcworkspace/contents.xcworkspacedata
 <?xml version="1.0" encoding="UTF-8"?>
-<Workspace
-   version = "1.0">
-   <FileRef
-      location = "group:Runner.xcodeproj">
-   </FileRef>
+<Workspace version="1.0">
+   <FileRef location="group:Runner.xcodeproj"></FileRef>
 </Workspace>
 EOF
 
-          # 4. استخراج معرّف الهدف الحقيقي Runner PBXNativeTarget وتوليد Runner.xcscheme
-          cat << 'PYEOF' > setup_schemes.py
-          import os, re
-
+      - name: Generate Shared Scheme
+        run: |
+          cat << 'EOF' > generate.py
+          import re
           target_id = "97C146ED1CF9000F007C117D"
-          pbx_path = "ios/Runner.xcodeproj/project.pbxproj"
-          if os.path.exists(pbx_path):
-              with open(pbx_path, "r", encoding="utf-8") as f:
-                  content = f.read()
-              sec = re.search(r"/\* Begin PBXNativeTarget section \*/(.*?)/\* End PBXNativeTarget section \*/", content, re.DOTALL)
-              if sec:
-                  m = re.search(r"([A-F0-9]{24})\s*/\*\s*Runner\s*\*/", sec.group(1))
-                  if m:
-                      target_id = m.group(1)
-          
-          print(f"Extracted Native Target ID: {target_id}")
+          try:
+              with open("ios/Runner.xcodeproj/project.pbxproj", "r") as f:
+                  m = re.search(r"([A-F0-9]{24})\s*/\*\s*Runner\s*\*/", f.read())
+                  if m: target_id = m.group(1)
+          except Exception:
+              pass
 
-          scheme_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Scheme
-   LastUpgradeVersion = "1510"
-   version = "1.3">
-   <BuildAction
-      parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES">
-      <BuildActionEntries>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "{target_id}"
-               BuildableName = "Runner.app"
-               BlueprintName = "Runner"
-               ReferencedContainer = "container:Runner.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-      </BuildActionEntries>
-   </BuildAction>
-   <TestAction
-      buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-      </Testables>
-   </TestAction>
-   <LaunchAction
-      buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      launchStyle = "0"
-      useCustomWorkingDirectory = "NO"
-      ignoresPersistentStateOnLaunch = "NO"
-      debugDocumentVersioning = "YES"
-      debugServiceExtension = "internal"
-      allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "{target_id}"
-            BuildableName = "Runner.app"
-            BlueprintName = "Runner"
-            ReferencedContainer = "container:Runner.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
-   </LaunchAction>
-   <ProfileAction
-      buildConfiguration = "Profile"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      savedToolIdentifier = ""
-      useCustomWorkingDirectory = "NO"
-      debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "{target_id}"
-            BuildableName = "Runner.app"
-            BlueprintName = "Runner"
-            ReferencedContainer = "container:Runner.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
-   </ProfileAction>
-   <AnalyzeAction
-      buildConfiguration = "Debug">
-   </AnalyzeAction>
-   <ArchiveAction
-      buildConfiguration = "Release"
-      revealArchiveInOrganizer = "YES">
-   </ArchiveAction>
-</Scheme>
-"""
-          clean_scheme = "\n".join([line.lstrip() for line in scheme_xml.splitlines()]).strip() + "\n"
+          scheme = f"""<?xml version="1.0" encoding="UTF-8"?>
+          <Scheme LastUpgradeVersion="1510" version="1.3">
+             <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+                <BuildActionEntries>
+                   <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
+                      <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{target_id}" BuildableName="Runner.app" BlueprintName="Runner" ReferencedContainer="container:Runner.xcodeproj">
+                      </BuildableReference>
+                   </BuildActionEntry>
+                </BuildActionEntries>
+             </BuildAction>
+             <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES">
+             </ArchiveAction>
+          </Scheme>"""
 
-          # كتابة المخطط في المشروع ومساحة العمل
-          for p in ["ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme",
-                    "ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme"]:
-              with open(p, "w", encoding="utf-8") as f:
-                  f.write(clean_scheme)
+          clean = "\n".join([line.strip() for line in scheme.splitlines() if line.strip()])
+          for p in ["ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme", "ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme"]:
+              with open(p, "w") as f: f.write(clean)
 
-          # 5. كتابة ملف إدارة المخططات المشتركة xcschememanagement.plist
-          shared_plist = """<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>SchemeUserState</key>
-	<dict>
-		<key>Runner.xcscheme_^#shared#^_</key>
-		<dict>
-			<key>isShown</key>
-			<true/>
-			<key>orderHint</key>
-			<integer>0</integer>
-		</dict>
-	</dict>
-</dict>
-</plist>
-"""
-          for p in ["ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist",
-                    "ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist"]:
-              with open(p, "w", encoding="utf-8") as f:
-                  f.write(shared_plist)
-
-          print("Schemes & xcschememanagement.plist configured successfully!")
-          PYEOF
-          python3 setup_schemes.py
-          chmod -R 755 ios/Runner.xcodeproj ios/Runner.xcworkspace
+          plist = """<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict><key>SchemeUserState</key><dict><key>Runner.xcscheme_^#shared#^_</key><dict><key>isShown</key><true/><key>orderHint</key><integer>0</integer></dict></dict></dict>
+          </plist>"""
+          clean_plist = "\n".join([line.strip() for line in plist.splitlines() if line.strip()])
+          for p in ["ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist", "ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist"]:
+              with open(p, "w") as f: f.write(clean_plist)
+          EOF
+          python3 generate.py
 
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Configure Project & Team ID
+      - name: Update Team and Bundle ID
         run: |
-          python3 -c "
-          import re
-          p = 'ios/Runner.xcodeproj/project.pbxproj'
-          with open(p, 'r') as f: c = f.read()
-          c = re.sub(r'com\.uni_guide_app', 'com.omar.uniguide', c)
-          c = re.sub(r'DEVELOPMENT_TEAM = \"\";', 'DEVELOPMENT_TEAM = 48Z9H342HM;', c)
-          if 'DEVELOPMENT_TEAM = 48Z9H342HM;' not in c:
-              c = re.sub(r'(PRODUCT_BUNDLE_IDENTIFIER = com\.omar\.uniguide;)', r'\1\n\t\t\t\tDEVELOPMENT_TEAM = 48Z9H342HM;', c)
-          with open(p, 'w') as f: f.write(c)
-          "
-          echo "=== Active Schemes in Workspace ==="
-          xcodebuild -list -workspace ios/Runner.xcworkspace
+          sed -i '' 's/com.uni_guide_app/com.omar.uniguide/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 48Z9H342HM;/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS App
         run: flutter build ios --release --no-codesign
