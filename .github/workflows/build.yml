@@ -16,44 +16,26 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare Xcode Directories
+      - name: Setup Xcode Schemes
         run: |
-          mkdir -p ios/Runner.xcodeproj/xcshareddata/xcschemes
-          mkdir -p ios/Runner.xcodeproj/project.xcworkspace
-          mkdir -p ios/Runner.xcworkspace/xcshareddata/xcschemes
+          python3 -c '
+          import os
+          os.makedirs("ios/Runner.xcodeproj/xcshareddata/xcschemes", exist_ok=True)
+          os.makedirs("ios/Runner.xcodeproj/project.xcworkspace", exist_ok=True)
+          os.makedirs("ios/Runner.xcworkspace/xcshareddata/xcschemes", exist_ok=True)
 
-          cat << 'EOF' > ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata
-<?xml version="1.0" encoding="UTF-8"?>
-<Workspace version="1.0">
-   <FileRef location="self:"></FileRef>
-</Workspace>
-EOF
+          with open("ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata", "w") as f:
+              f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Workspace version=\"1.0\"><FileRef location=\"self:\"></FileRef></Workspace>\n")
 
-          cat << 'EOF' > ios/Runner.xcworkspace/contents.xcworkspacedata
-<?xml version="1.0" encoding="UTF-8"?>
-<Workspace version="1.0">
-   <FileRef location="group:Runner.xcodeproj"></FileRef>
-</Workspace>
-EOF
+          with open("ios/Runner.xcworkspace/contents.xcworkspacedata", "w") as f:
+              f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Workspace version=\"1.0\"><FileRef location=\"group:Runner.xcodeproj\"></FileRef></Workspace>\n")
 
-      - name: Generate Shared Scheme
-        run: |
-          cat << 'EOF' > generate.py
-          import re
-          target_id = "97C146ED1CF9000F007C117D"
-          try:
-              with open("ios/Runner.xcodeproj/project.pbxproj", "r") as f:
-                  m = re.search(r"([A-F0-9]{24})\s*/\*\s*Runner\s*\*/", f.read())
-                  if m: target_id = m.group(1)
-          except Exception:
-              pass
-
-          scheme = f"""<?xml version="1.0" encoding="UTF-8"?>
+          scheme = """<?xml version="1.0" encoding="UTF-8"?>
           <Scheme LastUpgradeVersion="1510" version="1.3">
              <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
                 <BuildActionEntries>
                    <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
-                      <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{target_id}" BuildableName="Runner.app" BlueprintName="Runner" ReferencedContainer="container:Runner.xcodeproj">
+                      <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="97C146ED1CF9000F007C117D" BuildableName="Runner.app" BlueprintName="Runner" ReferencedContainer="container:Runner.xcodeproj">
                       </BuildableReference>
                    </BuildActionEntry>
                 </BuildActionEntries>
@@ -61,29 +43,40 @@ EOF
              <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES">
              </ArchiveAction>
           </Scheme>"""
-
-          clean = "\n".join([line.strip() for line in scheme.splitlines() if line.strip()])
-          for p in ["ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme", "ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme"]:
-              with open(p, "w") as f: f.write(clean)
+          clean_scheme = "\n".join([line.strip() for line in scheme.splitlines() if line.strip()]) + "\n"
+          with open("ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme", "w") as f:
+              f.write(clean_scheme)
+          with open("ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme", "w") as f:
+              f.write(clean_scheme)
 
           plist = """<?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict><key>SchemeUserState</key><dict><key>Runner.xcscheme_^#shared#^_</key><dict><key>isShown</key><true/><key>orderHint</key><integer>0</integer></dict></dict></dict>
           </plist>"""
-          clean_plist = "\n".join([line.strip() for line in plist.splitlines() if line.strip()])
-          for p in ["ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist", "ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist"]:
-              with open(p, "w") as f: f.write(clean_plist)
-          EOF
-          python3 generate.py
+          clean_plist = "\n".join([line.strip() for line in plist.splitlines() if line.strip()]) + "\n"
+          with open("ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist", "w") as f:
+              f.write(clean_plist)
+          with open("ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist", "w") as f:
+              f.write(clean_plist)
+          print("Schemes & Workspace configured successfully!")
+          '
 
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Update Team and Bundle ID
+      - name: Configure Project & Team ID
         run: |
-          sed -i '' 's/com.uni_guide_app/com.omar.uniguide/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 48Z9H342HM;/g' ios/Runner.xcodeproj/project.pbxproj
+          python3 -c "
+          p = 'ios/Runner.xcodeproj/project.pbxproj'
+          with open(p, 'r') as f: c = f.read()
+          c = c.replace('com.uni_guide_app', 'com.omar.uniguide')
+          c = c.replace('DEVELOPMENT_TEAM = \"\";', 'DEVELOPMENT_TEAM = 48Z9H342HM;')
+          if 'DEVELOPMENT_TEAM = 48Z9H342HM;' not in c:
+              c = c.replace('PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;', 'PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;\n\t\t\t\tDEVELOPMENT_TEAM = 48Z9H342HM;')
+          with open(p, 'w') as f: f.write(c)
+          "
+          xcodebuild -list -workspace ios/Runner.xcworkspace
 
       - name: Build iOS App
         run: flutter build ios --release --no-codesign
