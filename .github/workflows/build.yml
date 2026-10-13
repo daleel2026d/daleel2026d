@@ -244,11 +244,84 @@ jobs:
 
       - name: Fix Info.plist & Package Unsigned IPA
         run: |
+          python3 - << 'EOF'
+          import plistlib
+
+          plist_path = 'build/ios/iphoneos/Runner.app/Info.plist'
+          with open(plist_path, 'rb') as f:
+              pl = plistlib.load(f)
+
+          orientations = [
+              'UIInterfaceOrientationPortrait',
+              'UIInterfaceOrientationPortraitUpsideDown',
+              'UIInterfaceOrientationLandscapeLeft',
+              'UIInterfaceOrientationLandscapeRight'
+          ]
+
+          pl['UISupportedInterfaceOrientations'] = orientations
+          pl['UISupportedInterfaceOrientations~ipad'] = orientations
+          pl['UIRequiresFullScreen'] = True
+
+          with open(plist_path, 'wb') as f:
+              plistlib.dump(pl, f)
+
+          print('Info.plist successfully updated!')
+          EOF
+
           mkdir -p Payload
-          APP_PATH="build/ios/iphoneos/Runner.app"
-          
-          plutil -insert UISupportedInterfaceOrientations -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist" || plutil -replace UISupportedInterfaceOrientations -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist"
-          
-          plutil -insert "UISupportedInterfaceOrientations~ipad" -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist" \vert{}\vert{} plutil -replace "UISupportedInterfaceOrientations~ipad" -xml "<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>" "$APP_PATH/Info.plist"
-          
-          plutil -replace UIRequiresFullScreen -bool YES "$APP_PATH/Info.plist" \vert{}\vert{} plutil -insert UIRequiresFullScreen -bool YES "$
+          cp -r "build/ios/iphoneos/Runner.app" Payload/
+          zip -r -y daleel-unsigned.ipa Payload
+
+      - name: Install rcodesign
+        run: |
+          python3 - << 'EOF'
+          import sys, json, urllib.request, tarfile, os
+          req = urllib.request.Request('https://api.github.com/repos/indygreg/apple-platform-rs/releases/tags/apple-codesign%2F0.29.0', headers={'User-Agent': 'Mozilla/5.0'})
+          with urllib.request.urlopen(req) as resp:
+              data = json.loads(resp.read().decode())
+          for a in data.get('assets', []):
+              name = a['name']
+              if ('macos' in name or 'apple-darwin' in name) and name.endswith('.tar.gz'):
+                  print(f'Downloading {name}...')
+                  urllib.request.urlretrieve(a['browser_download_url'], 'rcodesign.tar.gz')
+                  with tarfile.open('rcodesign.tar.gz', 'r:gz') as tar:
+                      tar.extractall('.')
+                  for root, dirs, files in os.walk('.'):
+                      if 'rcodesign' in files:
+                          os.chmod(os.path.join(root, 'rcodesign'), 0o755)
+                          os.system(f'sudo mv {os.path.join(root, "rcodesign")} /usr/local/bin/rcodesign')
+                          print('rcodesign installed successfully!')
+                          break
+                  break
+          EOF
+
+      - name: Sign IPA
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o cert.p12
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o embedded.mobileprovision
+
+          rcodesign sign \
+            --p12-file cert.p12 \
+            --p12-password "$P12_PASSWORD" \
+            --code-signature-flags runtime \
+            --mobileprovision embedded.mobileprovision \
+            daleel-unsigned.ipa \
+            daleel-signed.ipa
+
+      - name: Upload to App Store Connect
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: 'daleel-signed.ipa'
+          issuer-id: ${{ secrets.APP_STORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
+
+      - name: Upload Signed Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daleel-signed-ipa
+          path: daleel-signed.ipa
