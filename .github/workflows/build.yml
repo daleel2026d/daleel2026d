@@ -1,4 +1,4 @@
-name: Build Flutter iOS IPA (Unsigned)
+name: Build, Sign and Upload Flutter iOS IPA
 
 on:
   workflow_dispatch:
@@ -72,8 +72,7 @@ jobs:
 
           # 5. توليد ملفات Storyboard المفقودة
           main_sb_b64 = 'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+Cjxkb2N1bWVudCB0eXBlPSJjb20uYXBwbGUuSW50ZXJmYWNlQnVpbGRlcjMuQ29jb2FUb3VjaC5TdG9yeWJvYXJkLlhJQiIgdmVyc2lvbj0iMy4wIiB0b29sc1ZlcnNpb249IjEwMTE3IiBzeXN0ZW1WZXJzaW9uPSIxNUYzNCIgdGFyZ2V0UnVudGltZT0iaU9TLkNvY29hVG91Y2giIHByb3BlcnR5QWNjZXNzQ29udHJvbD0ibm9uZSIgdXNlQXV0b2xheW91dD0iWUVTIiB1c2VUcmFpdENvbGxlY3Rpb25zPSJZRVMiIGluaXRpYWxWaWV3Q29udHJvbGxlcj0iQllaLTM4LXQwciI+CiAgICA8ZGVwZW5kZW5jaWVzPgogICAgICAgIDxkZXBsb3ltZW50IGlkZW50aWZpZXI9ImlPUyIvPgogICAgICAgIDxwbHVnSW4gaWRlbnRpZmllcj0iY29tLmFwcGxlLkludGVyZmFjZUJ1aWxkZXIuQ29jb2FUb3VjaFBsdWdpbiIgdmVyc2lvbj0iMTAwODUiLz4KICAgIDwvZGVwZW5kZW5jaWVzPgogICAgPHNjZW5lcz4KICAgICAgICA8IS0tRmx1dHRlciBWaWV3IENvbnRyb2xsZXItLT4KICAgICAgICA8c2NlbmUgc2NlbmVJRD0idG5lLVFULWlmdSI+CiAgICAgICAgICAgIDxvYmplY3RzPgogICAgICAgICAgICAgICAgPHZpZXdDb250cm9sbGVyIGlkPSJCWVotMzgtdDByIiBjdXN0b21DbGFzcz0iRmx1dHRlclZpZXdDb250cm9sbGVyIiBzY2VuZU1lbWJlcklEPSJ2aWV3Q29udHJvbGxlciI+CiAgICAgICAgICAgICAgICAgICAgPGxheW91dEd1aWRlcz4KICAgICAgICAgICAgICAgICAgICAgICAgPHZpZXdDb250cm9sbGVyTGF5b3V0R3VpZGUgdHlwZT0idG9wIiBpZD0ieTNjLWp5LWFESiIvPgogICAgICAgICAgICAgICAgICAgICAgICA8dmlld0NvbnRyb2xsZXJMYXlvdXRHdWlkZSB0eXBlPSJib3R0b20iIGlkPSJ3ZnktZGItZXVFIi8+CiAgICAgICAgICAgICAgICAgICAgPC9sYXlvdXRHdWlkZXM+CiAgICAgICAgICAgICAgICAgICAgPHZpZXcga2V5PSJ2aWV3IiBjb250ZW50TW9kZT0ic2NhbGVUb0ZpbGwiIGlkPSI4YkMtWGYtdmRDIj4KICAgICAgICAgICAgICAgICAgICAgICAgPHJlY3Qga2V5PSJmcmFtZSIgeD0iMC4wIiB5PSIwLjAiIHdpZHRoPSI2MDAiIGhlaWdodD0iNjAwIi8+CiAgICAgICAgICAgICAgICAgICAgICAgIDxhdXRvcmVzaXppbmdNYXNrIGtleT0iYXV0b3Jlc2l6aW5nTWFzayIgd2lkdGhTaXphYmxlPSJZRVMiIGhlaWdodFNpemFibGU9IllFUyIvPgogICAgICAgICAgICAgICAgICAgICAgICA8Y29sb3Iga2V5PSJiYWNrZ3JvdW5kQ29sb3IiIHdoaXRlPSIxIiBhbHBoYT0iMSIgY29sb3JTcGFjZT0iY3VzdG9tIiBjdXN0b21Db2xvclNwYWNlPSJjYWxpYnJhdGVkV2hpdGUiLz4KICAgICAgICAgICAgICAgICAgICA8L3ZpZXc+CiAgICAgICAgICAgICAgICA8L3ZpZXdDb250cm9sbGVyPgogICAgICAgICAgICAgICAgPHBsYWNlaG9sZGVyIHBsYWNlaG9sZGVySWRlbnRpZmllcj0iSUJGaXJzdFJlc3BvbmRlciIgaWQ9ImRreC16MC1uenIiIHNjZW5lTWVtYmVySUQ9ImZpcnN0UmVzcG9uZGVyIi8+CiAgICAgICAgICAgIDwvb2JqZWN0cz4KICAgICAgICA8L3NjZW5lPgogICAgPC9zY2VuZXM+CjwvZG9jdW1lbnQ+Cg=='
-          launch_sb_b64 = 'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+Cjxkb2N1bWVudCB0eXBlPSJjb20uYXBwbGUuSW50ZXJmYWNlQnVpbGRlcjMuQ29jb2FUb3VjaC5TdG9yeWJvYXJkLlhJQiIgdmVyc2lvbj0iMy4wIiB0b29sc1ZlcnNpb249IjEyMTIxIiBzeXN0ZW1WZXJzaW9uPSIxNkcyOSIgdGFyZ2V0UnVudGltZT0iaU9TLkNvY29hVG91Y2giIHByb3BlcnR5QWNjZXNzQ29udHJvbD0ibm9uZSIgdXNlQXV0b2xheW91dD0iWUVTIiBsYXVuY2hTY3JlZW49IllFUyIgY29sb3JNYXRjaGVkPSJZRVMiIGluaXRpYWxWaWV3Q29udHJvbGxlcj0iMDFKLWxwLW9WTSI+CiAgICA8ZGVwZW5kZW5jaWVzPgogICAgICAgIDxkZXBsb3ltZW50IGlkZW50aWZpZXI9ImlPUyIvPgogICAgICAgIDxwbHVnSW4gaWRlbnRpZmllcj0iY29tLmFwcGxlLkludGVyZmFjZUJ1aWxkZXIuQ29jb2FUb3VjaFBsdWdpbiIgdmVyc2lvbj0iMTIwODkiLz4KICAgIDwvZGVwZW5kZW5jaWVzPgogICAgPHNjZW5lcz4KICAgICAgICA8IS0tVmlldyBDb250cm9sbGVyLS0+CiAgICAgICAgPHNjZW5lIHNjZW5lSUQ9IkVIZi1JVy1BMkUiPgogICAgICAgICAgICA8b2JqZWN0cz4KICAgICAgICAgICAgICAgIDx2aWV3Q29udHJvbGxlciBpZD0iMDFKLWxwLW9WTSIgc2NlbmVNZW1iZXJJRD0idmlld0NvbnRyb2xsZXIiPgogICAgICAgICAgICAgICAgICAgIDxsYXlvdXRHdWlkZXM+CiAgICAgICAgICAgICAgICAgICAgICAgIDx2aWV3Q29udHJvbGxlckxheW91dEd1aWRlIHR5cGU9InRvcCIgaWQ9IkxsbS1sTC1JY2IiLz4KICAgICAgICAgICAgICAgICAgICAgICAgPHZpZXdDb250cm9sbGVyTGF5b3V0R3VpZGUgdHlwZT0iYm90dG9tIiBpZD0ibjN6LUUtNjJjIi8+CiAgICAgICAgICAgICAgICAgICAgPC9sYXlvdXRHdWlkZXM+CiAgICAgICAgICAgICAgICAgICAgPHZpZXcga2V5PSJ2aWV3IiBjb250ZW50TW9kZT0ic2NhbGVUb0ZpbGwiIGlkPSJaZTUtNmItMnQzIj4KICAgICAgICAgICAgICAgICAgICAgICAgPHJlY3Qga2V5PSJmcmFtZSIgeD0iMC4wIiB5PSIwLjAiIHdpZHRoPSIzNzUiIGhlaWdodD0iNjY3Ii8+CiAgICAgICAgICAgICAgICAgICAgICAgIDxhdXRvcmVzaXppbmdNYXNrIGtleT0iYXV0b3Jlc2l6aW5nTWFzayIgd2lkdGhTaXphYmxlPSJZRVMiIGhlaWdodFNpemFibGU9IllFUyIvPgogICAgICAgICAgICAgICAgICAgICAgICA8Y29sb3Iga2V5PSJiYWNrZ3JvdW5kQ29sb3IiIHJlZD0iMSIgZ3JlZW49IjEiIGJsdWU9IjEiIGFscGhhPSIxIiBjb2xvclNwYWNlPSJjdXN0b20iIGN1c3RvbUNvbG9yU3BhY2U9InNSR0IiLz4KICAgICAgICAgICAgICAgICAgICA8L3ZpZXc+CiAgICAgICAgICAgICAgICA8L3ZpZXdDb250cm9sbGVyPgogICAgICAgICAgICAgICAgPHBsYWNlaG9sZGVyIHBsYWNlaG9sZGVySWRlbnRpZmllcj0iSUJGaXJzdFJlc3BvbmRlciIgaWQ9ImRreC16MC1uenIiIHNjZW5lTWVtYmVySUQ9ImZpcnN0UmVzcG9uZGVyIi8+CiAgICAgICAgICAgIDwvb2JqZWN0cz4KICAgICAgICA8L3NjZW5lPgogICAgPC9zY2VuZXM+CjwvZG9jdW1lbnQ+Cg=='
-
+          launch_sb_b64 = 'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+Cjxkb2N1bWVudCB0eXBlPSJjb20uYXBwbGUuSW50ZXJmYWNlQnVpbGRlcjMuQ29jb2FUb3VjaC5TdG9yeWJvYXJkLlhJQiIgdmVyc2lvbj0iMy4wIiB0b29sc1ZlcnNpb249IjEyMTIxIiBzeXN0ZW1WZXJzaW9uPSIxNkcyOSIgdGFyZ2V0UnVudGltZT0iaU9TLkNvY29hVG91Y2giIHByb3BlcnR5QWNjZXNzQ29udHJvbD0ibm9uZSIgdXNlQXV0b2xheW91dD0iWUVTIiBsYXVuY2hTY3JlZW49IllFUyIgY29sb3JNYXRjaGVkPSJZRVMiIGluaXRpYWxWaWV3Q29udHJvbGxlcj0iMDFKLWxwLW9WTSI+CiAgICA8ZGVwZW5kZW5jaWVzPgogICAgICAgIDxkZXBsb3ltZW50IGlkZW50aWZpZXI9ImlPUyIvPgogICAgICAgIDxwbHVnSW4gaWRlbnRpZmllcj0iY29tLmFwcGxlLkludGVyZmFjZUJ1aWxkZXIuQ29jb2FUb3VjaFBsdWdpbiIgdmVyc2lvbj0iMTIwODkiLz4KICAgIDwvZGVwZW5kZW5jaWVzPgogICAgPHNjZW5lcz4KICAgICAgICA8IS0tVmlldyBDb250cm9sbGVyLS0+CiAgICAgICAgPHNjZW5lIHNjZW5lSUQ9IkVIZi1JVy1BMkUiPgogICAgICAgICAgICA8b2JqZWN0cz4KICAgICAgICAgICAgICAgIDx2aWV3Q29udHJvbGxlciBpZD0iMDFKLWxwLW9WTSIgc2NlbmVNZW1iZXJJRD0idmlld0NvbnRyb2xsZXIiPgogICAgICAgICAgICAgICAgICAgIDxsYXlvdXRHdWlkZXM+CiAgICAgICAgICAgICAgICAgICAgICAgIDx2aWV3Q29udHJvbGxlckxheW91dEd1aWRlIHR5cGU9InRvcCIgaWQ9IkxsbS1sTC1JY2IiLz4KICAgICAgICAgICAgICAgICAgICAgICAgPHZpZXdDb250cm9sbGVyTGF5b3V0R3VpZGUgdHlwZT0iYm90dG9tIiBpZD0ibjN6LUUtNjJjIi8+CiAgICAgICAgICAgICAgICAgICAgPC9sYXlvdXRHdWlkZXM+CiAgICAgICAgICAgICAgICAgICAgPHZpZXcga2V5PSJ2aWV3IiBjb250ZW50TW9kZT0ic2NhbGVUb0ZpbGwiIGlkPSJaZTUtNmItMnQzIj4KICAgICAgICAgICAgICAgICAgICAgICAgPHJlY3Qga2V5PSJmcmFtZSIgeD0iMC4wIiB5PSIwLjAiIHdpZHRoPSIzNzUiIGhlaWdodD0iNjY3Ii8+CiAgICAgICAgICAgICAgICAgICAgICAgIDxhdXRvcmVzaXppbmdNYXNrIGtleT0iYXV0b3Jlc2l6aW5nTWFzayIgd2lkdGhTaXphYmxlPSJZRVMiIGhlaWdodFNpemFibGU9IllFUyIvPgogICAgICAgICAgICAgICAgICAgICAgICA8Y29sb3Iga2V5PSJiYWNrZ3JvdW5kQ29sb3IiIHJlZD0iMSIgZ3JlZW49IjEiIGJsdWU9IjEiIGFscGhhPSIxIiBjb2xvclNwYWNlPSJjdXN0b20iIGN1c3RvbUNvbG9yU3BhY2U9InNSR0IiLz4KICAgICAgICAgICAgICAgICAgICA8L3ZpZXc+CiAgICAgICAgICAgICAgICA8L3ZpZXdDb250cm9sbGVyPgogICAgICAgICAgICAgICAgPHBsYWNlaG9sZGVyIHBsYWNlaG9sZGVySWRlbnRpZmllcj0iSUJGaXJzdFJlc3BvbmRlciIgaWQ9ImRreC16MC1uenIiIHNjZW5lTWVtYmVySUQ9ImZpcnN0UmVzcG9uZGVyIi8+
           if not os.path.exists('ios/Runner/Base.lproj/Main.storyboard'):
               with open('ios/Runner/Base.lproj/Main.storyboard', 'wb') as f:
                   f.write(base64.b64decode(main_sb_b64))
@@ -149,7 +148,7 @@ jobs:
       - name: Build iOS App
         run: flutter build ios --release --no-codesign
 
-      - name: Fix Info.plist & Package IPA
+      - name: Fix Info.plist & Package Unsigned IPA
         run: |
           mkdir -p Payload
           APP_PATH="build/ios/iphoneos/Runner.app"
@@ -163,8 +162,59 @@ jobs:
           cp -r "$APP_PATH" Payload/
           zip -r -y daleel-unsigned.ipa Payload
 
-      - name: Upload Artifact
+      # تثبيت أداة rcodesign المخصصة للتوقيع
+      - name: Install rcodesign
+        run: |
+          python3 -c "
+          import sys, json, urllib.request, tarfile, os
+          req = urllib.request.Request('https://api.github.com/repos/indygreg/apple-platform-rs/releases/tags/apple-codesign%2F0.29.0', headers={'User-Agent': 'Mozilla/5.0'})
+          with urllib.request.urlopen(req) as resp:
+              data = json.loads(resp.read().decode())
+          for a in data.get('assets', []):
+              name = a['name']
+              if ('macos' in name or 'apple-darwin' in name) and name.endswith('.tar.gz'):
+                  print(f'Downloading {name}...')
+                  urllib.request.urlretrieve(a['browser_download_url'], 'rcodesign.tar.gz')
+                  with tarfile.open('rcodesign.tar.gz', 'r:gz') as tar:
+                      tar.extractall('.')
+                  for root, dirs, files in os.walk('.'):
+                      if 'rcodesign' in files:
+                          os.chmod(os.path.join(root, 'rcodesign'), 0o755)
+                          os.system(f'sudo mv {os.path.join(root, \"rcodesign\")} /usr/local/bin/rcodesign')
+                          print('rcodesign installed successfully!')
+                          break
+                  break
+          "
+
+      # توقيع ملف الـ IPA باستخدام الشهادة وملف الـ Provisioning Profile
+      - name: Sign IPA
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o cert.p12
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o embedded.mobileprovision
+
+          rcodesign sign \
+            --p12-file cert.p12 \
+            --p12-password "$P12_PASSWORD" \
+            --code-signature-flags runtime \
+            --mobileprovision embedded.mobileprovision \
+            daleel-unsigned.ipa \
+            daleel-signed.ipa
+
+      # رفع الحزمة الموقعة مباشرة إلى App Store Connect
+      - name: Upload to App Store Connect
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: 'daleel-signed.ipa'
+          issuer-id: ${{ secrets.APP_STORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
+
+      - name: Upload Signed Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: daleel-unsigned-ipa
-          path: daleel-unsigned.ipa
+          name: daleel-signed-ipa
+          path: daleel-signed.ipa
