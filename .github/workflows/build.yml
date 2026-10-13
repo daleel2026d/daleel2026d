@@ -277,9 +277,9 @@ jobs:
           CERT_BASE64: ${{ secrets.CERT_BASE64 }}
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
-          # 1. فك تشفير الملفات واستخراج الشهادة المطابقة للمفتاح الخاص بدقة
+          # 1. فك تشفير المفتاح والشهادة وملف التعريف
           python3 - << 'EOF'
-          import os, base64, re, subprocess
+          import os, base64
 
           key_b64 = os.environ.get('KEY_BASE64', '').strip()
           cert_b64 = os.environ.get('CERT_BASE64', '').strip()
@@ -291,67 +291,20 @@ jobs:
           with open('private.key', 'wb') as f:
               f.write(base64.b64decode(key_b64))
 
-          bundle_data = base64.b64decode(cert_b64).decode('utf-8', errors='ignore')
+          with open('bundle.pem', 'wb') as f:
+              f.write(base64.b64decode(cert_b64))
+
           with open('embedded.mobileprovision', 'wb') as f:
               f.write(base64.b64decode(pp_b64))
 
-          # حساب Modulus الخاص بالمفتاح الخاص
-          key_mod = subprocess.check_output(
-              ['openssl', 'rsa', '-noout', '-modulus', '-in', 'private.key']
-          ).decode().strip()
-
-          # استخراج جميع الشهادات داخل bundle.pem والبحث عن المطابقة
-          cert_pattern = re.compile(r'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----', re.DOTALL)
-          certs = cert_pattern.findall(bundle_data)
-          print(f"Total certificates found in bundle: {len(certs)}")
-
-          matched_cert = None
-          ca_certs = []
-
-          for idx, cert_text in enumerate(certs):
-              temp_filename = f'temp_cert_{idx}.pem'
-              with open(temp_filename, 'w') as tf:
-                  tf.write(cert_text)
-              
-              try:
-                  cert_mod = subprocess.check_output(
-                      ['openssl', 'x509', '-noout', '-modulus', '-in', temp_filename]
-                  ).decode().strip()
-
-                  subject = subprocess.check_output(
-                      ['openssl', 'x509', '-noout', '-subject', '-in', temp_filename]
-                  ).decode().strip()
-
-                  if cert_mod == key_mod:
-                      print(f"-> MATCH FOUND in cert #{idx}: {subject}")
-                      matched_cert = cert_text
-                  else:
-                      ca_certs.append(cert_text)
-              finally:
-                  if os.path.exists(temp_filename):
-                      os.remove(temp_filename)
-
-          if not matched_cert:
-              raise RuntimeError("Could not find any certificate inside bundle.pem matching private.key!")
-
-          # كتابة شهادة المطور المطابقة
-          with open('developer.pem', 'w') as f:
-              f.write(matched_cert)
-
-          # كتابة شهادات Apple الوسيطة
-          with open('chain.pem', 'w') as f:
-              f.write('\n'.join(ca_certs))
-
-          print("Successfully isolated matching developer certificate and CA chain.")
+          print("Key size:", os.path.getsize('private.key'), "bytes")
+          print("Cert size:", os.path.getsize('bundle.pem'), "bytes")
+          print("Profile size:", os.path.getsize('embedded.mobileprovision'), "bytes")
           EOF
 
           # 2. تجميع الشهادة والمفتاح داخل بيئة الماك بكلمة سر مؤقتة
           TEMP_PASS="TempSignPass123!"
-          if [ -s chain.pem ]; then
-            openssl pkcs12 -export -legacy -inkey private.key -in developer.pem -certfile chain.pem -out cert.p12 -passout pass:"$TEMP_PASS"
-          else
-            openssl pkcs12 -export -legacy -inkey private.key -in developer.pem -out cert.p12 -passout pass:"$TEMP_PASS"
-          fi
+          openssl pkcs12 -export -legacy -inkey private.key -in bundle.pem -out cert.p12 -passout pass:"$TEMP_PASS"
 
           # 3. إنشاء وتجهيز Keychain مؤقت
           KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
