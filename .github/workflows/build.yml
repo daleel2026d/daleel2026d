@@ -242,7 +242,7 @@ jobs:
       - name: Build iOS App
         run: flutter build ios --release --no-codesign
 
-      - name: Fix Info.plist & Package Unsigned IPA
+      - name: Fix Info.plist
         run: |
           python3 - << 'EOF'
           import plistlib
@@ -270,32 +270,8 @@ jobs:
 
           mkdir -p Payload
           cp -r "build/ios/iphoneos/Runner.app" Payload/
-          zip -r -y daleel-unsigned.ipa Payload
 
-      - name: Install rcodesign
-        run: |
-          python3 - << 'EOF'
-          import sys, json, urllib.request, tarfile, os
-          req = urllib.request.Request('https://api.github.com/repos/indygreg/apple-platform-rs/releases/tags/apple-codesign%2F0.29.0', headers={'User-Agent': 'Mozilla/5.0'})
-          with urllib.request.urlopen(req) as resp:
-              data = json.loads(resp.read().decode())
-          for a in data.get('assets', []):
-              name = a['name']
-              if ('macos' in name or 'apple-darwin' in name) and name.endswith('.tar.gz'):
-                  print(f'Downloading {name}...')
-                  urllib.request.urlretrieve(a['browser_download_url'], 'rcodesign.tar.gz')
-                  with tarfile.open('rcodesign.tar.gz', 'r:gz') as tar:
-                      tar.extractall('.')
-                  for root, dirs, files in os.walk('.'):
-                      if 'rcodesign' in files:
-                          os.chmod(os.path.join(root, 'rcodesign'), 0o755)
-                          os.system(f'sudo mv {os.path.join(root, "rcodesign")} /usr/local/bin/rcodesign')
-                          print('rcodesign installed successfully!')
-                          break
-                  break
-          EOF
-
-      - name: Sign IPA
+      - name: Sign IPA using Apple Native Tools
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -304,13 +280,28 @@ jobs:
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o cert.p12
           echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o embedded.mobileprovision
 
-          rcodesign sign \
-            --p12-file cert.p12 \
-            --p12-password "$P12_PASSWORD" \
-            --code-signature-flags runtime \
-            --mobileprovision embedded.mobileprovision \
-            daleel-unsigned.ipa \
-            daleel-signed.ipa
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security create-keychain -p "temp_pwd" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "temp_pwd" $KEYCHAIN_PATH
+          security import cert.p12 -k $KEYCHAIN_PATH -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "temp_pwd" $KEYCHAIN_PATH
+
+          IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep -o '"[^"]*"' | head -n 1 | tr -d '"')
+          echo "Signing with Identity: $IDENTITY"
+
+          cp embedded.mobileprovision Payload/Runner.app/embedded.mobileprovision
+
+          security cms -D -i embedded.mobileprovision > profile.plist
+          /usr/libexec/PlistBuddy -x -c "Print :Entitlements" profile.plist > entitlements.plist
+
+          find Payload/Runner.app/Frameworks -name "*.dylib" -o -name "*.framework" 2>/dev/null | while read -r lib; do
+            codesign --force --sign "$IDENTITY" --keychain $KEYCHAIN_PATH "$lib"
+          done
+
+          codesign --force --sign "$IDENTITY" --entitlements entitlements.plist --timestamp --generate-entitlement-der --keychain $KEYCHAIN_PATH Payload/Runner.app
+
+          zip -r -y daleel-signed.ipa Payload
 
       - name: Upload to App Store Connect
         uses: apple-actions/upload-testflight-build@v1
