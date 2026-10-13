@@ -230,10 +230,11 @@ jobs:
           p = 'ios/Runner.xcodeproj/project.pbxproj'
           with open(p, 'r') as f:
               c = f.read()
-          c = c.replace('com.uni_guide_app', 'com.omar.uniguide')
+          c = c.replace('com.uni_guide_app', 'com.example.cloudsaasApp')
+          c = c.replace('com.omar.uniguide', 'com.example.cloudsaasApp')
           c = c.replace('DEVELOPMENT_TEAM = "";', 'DEVELOPMENT_TEAM = 48Z9H342HM;')
           if 'DEVELOPMENT_TEAM = 48Z9H342HM;' not in c:
-              c = c.replace('PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;', 'PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;\n\t\t\t\tDEVELOPMENT_TEAM = 48Z9H342HM;')
+              c = c.replace('PRODUCT_BUNDLE_IDENTIFIER = com.example.cloudsaasApp;', 'PRODUCT_BUNDLE_IDENTIFIER = com.example.cloudsaasApp;\n\t\t\t\tDEVELOPMENT_TEAM = 48Z9H342HM;')
           with open(p, 'w') as f:
               f.write(c)
           EOF
@@ -251,6 +252,9 @@ jobs:
           with open(plist_path, 'rb') as f:
               pl = plistlib.load(f)
 
+          # ضبط معرّف الحزمة ليتطابق تماماً مع ملف التعريف
+          pl['CFBundleIdentifier'] = 'com.example.cloudsaasApp'
+
           orientations = [
               'UIInterfaceOrientationPortrait',
               'UIInterfaceOrientationPortraitUpsideDown',
@@ -265,7 +269,7 @@ jobs:
           with open(plist_path, 'wb') as f:
               plistlib.dump(pl, f)
 
-          print('Info.plist successfully updated!')
+          print('Info.plist successfully updated with matching Bundle ID!')
           EOF
 
           mkdir -p Payload
@@ -349,17 +353,14 @@ jobs:
           APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
           APP_STORE_PRIVATE_KEY: ${{ secrets.APP_STORE_PRIVATE_KEY }}
         run: |
-          # 1. إنشاء المجلدات القياسية لمفاتيح Apple API
           mkdir -p ~/.private_keys
           mkdir -p ~/private_keys
 
-          # 2. فك تشفير المفتاح مباشرة إلى المسار القياسي بدقة تامة
           python3 -c "
           import os, base64
           raw = os.environ.get('APP_STORE_PRIVATE_KEY', '').strip()
           key_id = os.environ.get('APP_STORE_KEY_ID', '').strip()
           try:
-              # فحص إذا كان المفتاح مشفراً بصيغة Base64
               content = base64.b64decode(raw)
               if b'PRIVATE KEY' not in content:
                   content = raw.encode('utf-8')
@@ -374,7 +375,6 @@ jobs:
               print(f'Wrote AuthKey to {target} (Size: {os.path.getsize(target)} bytes)')
           "
 
-          # 3. تنفيذ الرفع المباشر عبر أداة Apple altool
           xcrun altool --upload-app \
             --file daleel-signed.ipa \
             --type ios \
