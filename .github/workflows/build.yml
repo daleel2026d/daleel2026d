@@ -1,4 +1,277 @@
-- name: Sign IPA using Apple Native Tools
+name: Build, Sign and Upload Flutter iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Disable SPM and Precache iOS
+        run: |
+          flutter config --no-enable-swift-package-manager
+          flutter precache --ios
+
+      - name: Setup iOS Environment, Storyboards and Assets
+        run: |
+          python3 - << 'EOF'
+          import os, base64, re
+
+          # 1. تجهيز مجلدات Xcode ومساحات العمل
+          os.makedirs('ios/Runner.xcodeproj/xcshareddata/xcschemes', exist_ok=True)
+          os.makedirs('ios/Runner.xcodeproj/project.xcworkspace', exist_ok=True)
+          os.makedirs('ios/Runner.xcworkspace/xcshareddata/xcschemes', exist_ok=True)
+          os.makedirs('ios/Runner/Base.lproj', exist_ok=True)
+
+          # 2. ملفات مساحة العمل Workspace
+          ws_inner = '<?xml version="1.0" encoding="UTF-8"?>\n<Workspace version="1.0"><FileRef location="self:"></FileRef></Workspace>\n'
+          ws_outer = '<?xml version="1.0" encoding="UTF-8"?>\n<Workspace version="1.0"><FileRef location="group:Runner.xcodeproj"></FileRef></Workspace>\n'
+          with open('ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata', 'w') as f:
+              f.write(ws_inner)
+          with open('ios/Runner.xcworkspace/contents.xcworkspacedata', 'w') as f:
+              f.write(ws_outer)
+
+          # 3. مخطط Runner Scheme
+          scheme_content = '''<?xml version="1.0" encoding="UTF-8"?>
+          <Scheme LastUpgradeVersion="1510" version="1.3">
+             <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+                <BuildActionEntries>
+                   <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
+                      <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="97C146ED1CF9000F007C117D" BuildableName="Runner.app" BlueprintName="Runner" ReferencedContainer="container:Runner.xcodeproj">
+                      </BuildableReference>
+                   </BuildActionEntry>
+                </BuildActionEntries>
+             </BuildAction>
+             <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES">
+             </ArchiveAction>
+          </Scheme>'''
+          clean_scheme = '\n'.join([line.strip() for line in scheme_content.splitlines() if line.strip()]) + '\n'
+          for p in ['ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme', 'ios/Runner.xcworkspace/xcshareddata/xcschemes/Runner.xcscheme']:
+              with open(p, 'w') as f:
+                  f.write(clean_scheme)
+
+          # 4. ملف ادارة المخططات Plist
+          plist_content = '''<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict><key>SchemeUserState</key><dict><key>Runner.xcscheme_^#shared#^_</key><dict><key>isShown</key><true/><key>orderHint</key><integer>0</integer></dict></dict></dict>
+          </plist>'''
+          clean_plist = '\n'.join([line.strip() for line in plist_content.splitlines() if line.strip()]) + '\n'
+          for p in ['ios/Runner.xcodeproj/xcshareddata/xcschemes/xcschememanagement.plist', 'ios/Runner.xcworkspace/xcshareddata/xcschemes/xcschememanagement.plist']:
+              with open(p, 'w') as f:
+                  f.write(clean_plist)
+
+          # 5. توليد ملفات Storyboard المفقودة
+          main_storyboard = '''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+          <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15F34" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="BYZ-38-t0r">
+              <dependencies>
+                  <deployment identifier="iOS"/>
+                  <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+              </dependencies>
+              <scenes>
+                  <scene sceneID="tne-QT-ifu">
+                      <objects>
+                          <viewController id="BYZ-38-t0r" customClass="FlutterViewController" sceneMemberID="viewController">
+                              <layoutGuides>
+                                  <viewControllerLayoutGuide type="top" id="y3c-jy-aDJ"/>
+                                  <viewControllerLayoutGuide type="bottom" id="wfy-db-euE"/>
+                              </layoutGuides>
+                              <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                                  <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                                  <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                  <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                              </view>
+                          </viewController>
+                          <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+                      </objects>
+                  </scene>
+              </scenes>
+          </document>'''
+
+          launch_storyboard = '''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+          <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+              <dependencies>
+                  <deployment identifier="iOS"/>
+                  <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12089"/>
+              </dependencies>
+              <scenes>
+                  <scene sceneID="EHf-IW-A2E">
+                      <objects>
+                          <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                              <layoutGuides>
+                                  <viewControllerLayoutGuide type="top" id="Llm-lL-Icb"/>
+                                  <viewControllerLayoutGuide type="bottom" id="n3z-E-62c"/>
+                              </layoutGuides>
+                              <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                                  <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                                  <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                  <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                              </view>
+                          </viewController>
+                          <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                      </objects>
+                      <point key="canvasLocation" x="53" y="375"/>
+                  </scene>
+              </scenes>
+          </document>'''
+
+          if not os.path.exists('ios/Runner/Base.lproj/Main.storyboard'):
+              with open('ios/Runner/Base.lproj/Main.storyboard', 'w', encoding='utf-8') as f:
+                  f.write(main_storyboard)
+              print('Auto-generated Main.storyboard')
+
+          if not os.path.exists('ios/Runner/Base.lproj/LaunchScreen.storyboard'):
+              with open('ios/Runner/Base.lproj/LaunchScreen.storyboard', 'w', encoding='utf-8') as f:
+                  f.write(launch_storyboard)
+              print('Auto-generated LaunchScreen.storyboard')
+
+          # 6. توليد Podfile القياسي اذا لم يكن موجودا
+          podfile_path = 'ios/Podfile'
+          if not os.path.exists(podfile_path):
+              podfile_code = '''platform :ios, '15.0'
+          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+          project 'Runner', {
+            'Debug' => :debug,
+            'Profile' => :release,
+            'Release' => :release,
+          }
+
+          def flutter_root
+            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+            unless File.exist?(generated_xcode_build_settings_path)
+              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get has executed first"
+            end
+
+            File.foreach(generated_xcode_build_settings_path) do |line|
+              matches = line.match(/FLUTTER_ROOT\=(.*)/)
+              return matches[1].strip if matches
+            end
+            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig and running flutter pub get"
+          end
+
+          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+          flutter_ios_podfile_setup
+
+          target 'Runner' do
+            use_frameworks!
+            use_modular_headers!
+
+            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+          end
+
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              flutter_additional_ios_build_settings(target)
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+              end
+            end
+          end
+          '''
+              with open(podfile_path, 'w', encoding='utf-8') as f:
+                  f.write(podfile_code)
+
+          # 7. فحص pubspec.yaml وتوليد كافة الصور والملفات المفقودة تلقائيا
+          png_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
+          jpg_data = base64.b64decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=')
+
+          if os.path.exists('pubspec.yaml'):
+              with open('pubspec.yaml', 'r', encoding='utf-8') as f:
+                  lines = f.readlines()
+              in_assets = False
+              for line in lines:
+                  s = line.strip()
+                  if re.match(r'^\s*assets:\s*$', line):
+                      in_assets = True
+                      continue
+                  if in_assets:
+                      if s.startswith('- '):
+                          asset = s[2:].strip().strip("\'\"")
+                          if asset.endswith('/'):
+                              os.makedirs(asset, exist_ok=True)
+                          else:
+                              parent = os.path.dirname(asset)
+                              if parent:
+                                  os.makedirs(parent, exist_ok=True)
+                              if not os.path.exists(asset):
+                                  if asset.lower().endswith(('.jpg', '.jpeg')):
+                                      d = jpg_data
+                                  elif asset.lower().endswith('.png'):
+                                      d = png_data
+                                  else:
+                                      d = b''
+                                  with open(asset, 'wb') as af:
+                                      af.write(d)
+                                  print(f'Auto-created missing asset: {asset}')
+                      elif s and not s.startswith('#'):
+                          if not line.startswith('    ') and not line.startswith('\t'):
+                              in_assets = False
+
+          print('All setup and assets processed successfully!')
+          EOF
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Configure Project & Team ID
+        run: |
+          python3 - << 'EOF'
+          p = 'ios/Runner.xcodeproj/project.pbxproj'
+          with open(p, 'r') as f:
+              c = f.read()
+          c = c.replace('com.uni_guide_app', 'com.omar.uniguide')
+          c = c.replace('DEVELOPMENT_TEAM = "";', 'DEVELOPMENT_TEAM = 48Z9H342HM;')
+          if 'DEVELOPMENT_TEAM = 48Z9H342HM;' not in c:
+              c = c.replace('PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;', 'PRODUCT_BUNDLE_IDENTIFIER = com.omar.uniguide;\n\t\t\t\tDEVELOPMENT_TEAM = 48Z9H342HM;')
+          with open(p, 'w') as f:
+              f.write(c)
+          EOF
+          xcodebuild -list -workspace ios/Runner.xcworkspace
+
+      - name: Build iOS App
+        run: flutter build ios --release --no-codesign
+
+      - name: Fix Info.plist
+        run: |
+          python3 - << 'EOF'
+          import plistlib
+
+          plist_path = 'build/ios/iphoneos/Runner.app/Info.plist'
+          with open(plist_path, 'rb') as f:
+              pl = plistlib.load(f)
+
+          orientations = [
+              'UIInterfaceOrientationPortrait',
+              'UIInterfaceOrientationPortraitUpsideDown',
+              'UIInterfaceOrientationLandscapeLeft',
+              'UIInterfaceOrientationLandscapeRight'
+          ]
+
+          pl['UISupportedInterfaceOrientations'] = orientations
+          pl['UISupportedInterfaceOrientations~ipad'] = orientations
+          pl['UIRequiresFullScreen'] = True
+
+          with open(plist_path, 'wb') as f:
+              plistlib.dump(pl, f)
+
+          print('Info.plist successfully updated!')
+          EOF
+
+          mkdir -p Payload
+          cp -r "build/ios/iphoneos/Runner.app" Payload/
+
+      - name: Sign IPA using Apple Native Tools
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -24,7 +297,7 @@
           print("Profile size:", os.path.getsize('embedded.mobileprovision'), "bytes")
           EOF
 
-          # 2. تحديد مسار OpenSSL 3 على الماك وتحويل الشهادة تلقائياً إلى صيغة متوافقة مع macOS Keychain
+          # 2. تحديد مسار OpenSSL وتحويل الشهادة تلقائياً إلى صيغة متوافقة مع macOS Keychain (Legacy PKCS12)
           if [ -x "/opt/homebrew/opt/openssl@3/bin/openssl" ]; then
             OPENSSL_BIN="/opt/homebrew/opt/openssl@3/bin/openssl"
           elif [ -x "/usr/local/opt/openssl@3/bin/openssl" ]; then
@@ -43,7 +316,7 @@
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "temp_pwd" $KEYCHAIN_PATH
 
-          # 4. استيراد الشهادة المحوّلة
+          # 4. استيراد الشهادة المحولة
           security import cert_legacy.p12 -k $KEYCHAIN_PATH -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple: -s -k "temp_pwd" $KEYCHAIN_PATH
           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
@@ -68,8 +341,22 @@
             done
           fi
 
-          # 8. توقيع التطبيق الرئيسي
+          # 8. توقيع حزمة التطبيق بالكامل
           codesign --force --sign "$IDENTITY" --entitlements entitlements.plist --timestamp --generate-entitlement-der --keychain $KEYCHAIN_PATH Payload/Runner.app
 
           # 9. ضغط الحزمة الموقعة
           zip -r -y daleel-signed.ipa Payload
+
+      - name: Upload to App Store Connect
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: 'daleel-signed.ipa'
+          issuer-id: ${{ secrets.APP_STORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
+
+      - name: Upload Signed Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daleel-signed-ipa
+          path: daleel-signed.ipa
