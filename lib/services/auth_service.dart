@@ -131,6 +131,40 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // حذف الحساب نهائياً من قاعدة البيانات ومن نظام المصادقة
+  Future<String?> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return 'لم يتم العثور على حساب نشط لتسجيل الخروج منه';
+      }
+      final uid = user.uid;
+
+      // 1. حذف وثيقة المستخدم من فايرستور
+      try {
+        await _firestore.collection('users').doc(uid).delete();
+      } catch (_) {
+        // الاستمرار حتى لو كانت الوثيقة محذوفة مسبقاً
+      }
+
+      // 2. تسجيل الخروج من حساب جوجل إن وُجد
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
+      // 3. حذف الحساب نهائياً من Firebase Authentication
+      await user.delete();
+      return null; // نجاح
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return 'لأسباب أمنية وحماية لحسابك، يتطلب حذف الحساب تسجيل خروج ثم إعادة تسجيل الدخول مرة أخرى قبل الحذف.';
+      }
+      return _getErrorMessage(e.code);
+    } catch (e) {
+      return 'تعذر إتمام عملية حذف الحساب حالياً ($e)';
+    }
+  }
+
   // ترجمة أخطاء Firebase لرسائل عربية مفهومة
   String _getErrorMessage(String code) {
     switch (code) {

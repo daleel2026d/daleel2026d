@@ -5,6 +5,7 @@ import '../main.dart';
 import '../services/app_controller.dart';
 import '../services/app_localizations.dart';
 import '../services/auth_service.dart';
+import '../services/rating_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -702,7 +703,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 
 
-                    // 4. التواصل مع الدعم
+                    // 4. تقييم التطبيق
+                    _buildSettingsTile(
+                      icon: Icons.star_rate_rounded,
+                      iconColor: const Color(0xFFF59E0B),
+                      title: AppStrings.isAr(context) ? 'تقييم التطبيق' : 'Rate the App',
+                      subtitle: AppStrings.isAr(context)
+                          ? 'شاركنا تجربتك وساعدنا على تحسين التطبيق'
+                          : 'Share your experience and support us',
+                      onTap: () => RatingService.showRatingDialog(context),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 60,
+                      endIndent: 20,
+                      color: AppColors.border(context),
+                    ),
+
+                    // 5. التواصل مع الدعم
                     _buildSettingsTile(
                       icon: Icons.headset_mic_outlined,
                       iconColor: const Color(0xFFEA580C),

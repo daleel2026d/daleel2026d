@@ -21,6 +21,7 @@ import 'scholarship_details_screen.dart';
 import 'opportunity_details_screen.dart';
 import 'training_center_details_screen.dart';
 import 'notifications_screen.dart';
+import '../services/rating_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +33,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   DateTime? _lastBackPressTime;
+
+  @override
+  void initState() {
+    super.initState();
+    // تسجيل جلسة فتح التطبيق والتحقق من التقييم التلقائي وفق القواعد المحددة
+    RatingService.recordAppOpen();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      RatingService.checkAndPromptRating(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
