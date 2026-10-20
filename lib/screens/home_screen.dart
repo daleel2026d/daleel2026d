@@ -22,6 +22,8 @@ import 'opportunity_details_screen.dart';
 import 'training_center_details_screen.dart';
 import 'notifications_screen.dart';
 import '../services/rating_service.dart';
+import '../widgets/student_tools_section.dart';
+import 'tools/admission_chance_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1255,7 +1257,57 @@ class _HomeContentState extends State<_HomeContent> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox.shrink(),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AdmissionChanceScreen(
+                                    initialGpa: double.tryParse(
+                                      _averageController.text.trim(),
+                                    ),
+                                    initialTrack: _selectedTrack,
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.amber,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    AppStrings.isAr(context)
+                                        ? 'أدوات الطالب الذكية'
+                                        : 'Smart Toolkit',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                         StreamBuilder<int>(
                           stream: NotificationService().getUnreadCountStream(),
                           builder: (context, snapshot) {
@@ -1482,7 +1534,15 @@ class _HomeContentState extends State<_HomeContent> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
+
+                // قسم حقيبة أدوات الطالب التفاعلية
+                StudentToolsSection(
+                  currentAverage: double.tryParse(_averageController.text.trim()),
+                  currentTrack: _selectedTrack,
+                ),
+
+                const SizedBox(height: 24),
 
                 if (_defaultUniversities.isNotEmpty) ...[
                   Row(

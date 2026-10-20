@@ -3,6 +3,8 @@ import '../models/college_with_university.dart';
 import '../services/app_localizations.dart';
 import '../main.dart';
 import 'custom_cached_image.dart';
+import '../screens/tools/student_wishlist_screen.dart';
+import '../screens/tools/university_compare_screen.dart';
 
 class MatchedCollegeCard extends StatelessWidget {
   final CollegeWithUniversity item;
@@ -211,10 +213,56 @@ class MatchedCollegeCard extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          IconButton(
+                            icon: const Icon(Icons.bookmark_add_outlined, size: 20),
+                            tooltip: AppStrings.isAr(context) ? 'إضافة لرغباتي' : 'Wishlist',
+                            color: AppColors.primaryDark,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () async {
+                              await StudentWishlistService.addChoice(
+                                collegeName: college.name,
+                                universityName: uni.name,
+                                minGpa: college.minGpa,
+                                city: uni.city,
+                                type: uni.type,
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      AppStrings.isAr(context)
+                                          ? 'تمت إضافة ${college.name} إلى استمارة رغباتك'
+                                          : 'Added to your wishlist',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.compare_arrows_rounded, size: 20),
+                            tooltip: AppStrings.isAr(context) ? 'مقارنة' : 'Compare',
+                            color: AppColors.primaryDark,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => UniversityCompareScreen(
+                                    preselectedCollege1: college,
+                                    preselectedUni1: uni,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 4),
                           Text(
                             AppStrings.isAr(context)
-                                ? 'عرض التفاصيل'
-                                : 'View Details',
+                                ? 'التفاصيل'
+                                : 'Details',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,

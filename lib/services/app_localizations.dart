@@ -280,4 +280,33 @@ class AppStrings {
       isAr(context) ? 'فتح سياسة الخصوصية الرسمية' : 'Open Official Privacy Policy';
   static String version(BuildContext context) =>
       isAr(context) ? 'الإصدار 2.0.0' : 'Version 2.0.0';
+
+  // Student Smart Toolkit
+  static String studentToolsTitle(BuildContext context) =>
+      isAr(context) ? 'حقيبة أدوات الطالب الذكية' : 'Student Smart Toolkit';
+  static String studentToolsSubtitle(BuildContext context) =>
+      isAr(context)
+          ? 'أدوات تفاعلية متقدمة لحساب فرص القبول، المقارنة المباشرة، والتخطيط الأكاديمي'
+          : 'Interactive tools for admission chances, side-by-side comparisons & academic planning';
+  static String toolAdmissionCalculator(BuildContext context) =>
+      isAr(context) ? 'حاسبة فرص القبول' : 'Admission Chances';
+  static String toolAdmissionCalculatorDesc(BuildContext context) =>
+      isAr(context) ? 'احسب فرص قبولك والمفاضلة التنافسية' : 'Calculate admission likelihood & competition';
+  static String toolCompare(BuildContext context) =>
+      isAr(context) ? 'مقارنة الجامعات' : 'Compare Universities';
+  static String toolCompareDesc(BuildContext context) =>
+      isAr(context) ? 'قارن بين كليتين أو جامعتين جنباً إلى جنب' : 'Compare two universities or colleges side-by-side';
+  static String toolChecklist(BuildContext context) =>
+      isAr(context) ? 'مخطط مهام التقديم' : 'Admission Roadmap';
+  static String toolChecklistDesc(BuildContext context) =>
+      isAr(context) ? 'متابعة تجهيز المستمسكات وخطوات القبول' : 'Track documents preparation & admission milestones';
+  static String toolTuition(BuildContext context) =>
+      isAr(context) ? 'حاسبة الأقساط والتخفيضات' : 'Tuition & Discounts';
+  static String toolTuitionDesc(BuildContext context) =>
+      isAr(context) ? 'حساب الأقساط بعد الخصومات وجدول الدفعات' : 'Calculate net tuition after discounts & installments';
+  static String toolWishlist(BuildContext context) =>
+      isAr(context) ? 'استمارة رغباتي وملاحظاتي' : 'My College Wishlist';
+  static String toolWishlistDesc(BuildContext context) =>
+      isAr(context) ? 'ترتيب رغبات القبول وتدوين الملاحظات الشخصية' : 'Order college preferences & save personal notes';
 }
+

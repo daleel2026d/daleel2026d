@@ -1311,8 +1311,10 @@ class _UniversityDetailsScreenState extends State<UniversityDetailsScreen>
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
       itemCount: widget.university.colleges.length,
-      itemBuilder: (context, index) =>
-          CollegeCard(college: widget.university.colleges[index]),
+      itemBuilder: (context, index) => CollegeCard(
+        college: widget.university.colleges[index],
+        university: widget.university,
+      ),
     );
   }
 

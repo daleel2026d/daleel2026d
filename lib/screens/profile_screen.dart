@@ -15,6 +15,11 @@ import 'settings_screen.dart';
 import '../services/auth_service.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/admin_university_edit_screen.dart';
+import 'tools/admission_chance_screen.dart';
+import 'tools/university_compare_screen.dart';
+import 'tools/admission_checklist_screen.dart';
+import 'tools/tuition_calculator_screen.dart';
+import 'tools/student_wishlist_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -226,6 +231,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
               iconColor: AppColors.accentBlue,
               title: AppStrings.featCustomize(context),
               subtitle: AppStrings.featCustomizeDesc(context),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primaryDark,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  AppStrings.isAr(context)
+                      ? 'أدوات الطالب وخطتي (تعمل دون حساب)'
+                      : 'My Tools & Plan (Guest Ready)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMain(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildProfileOptionTile(
+              icon: Icons.checklist_rtl_rounded,
+              title: AppStrings.isAr(context)
+                  ? 'مخطط ومهام التقديم الجامعي'
+                  : 'Admission Roadmap',
+              subtitle: AppStrings.isAr(context)
+                  ? 'متابعة المستمسكات والخطوات دون اتصال'
+                  : 'Offline admission milestones',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdmissionChecklistScreen(),
+                ),
+              ),
+            ),
+            _buildProfileOptionTile(
+              icon: Icons.playlist_add_check_circle_rounded,
+              title: AppStrings.isAr(context)
+                  ? 'استمارة رغباتي وملاحظاتي'
+                  : 'My College Wishlist',
+              subtitle: AppStrings.isAr(context)
+                  ? 'ترتيب الكليات وتدوين الملاحظات الشخصية'
+                  : 'Personal college preferences & notes',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const StudentWishlistScreen(),
+                ),
+              ),
+            ),
+            _buildProfileOptionTile(
+              icon: Icons.calculate_rounded,
+              title: AppStrings.isAr(context)
+                  ? 'حاسبة فرص القبول الذكية'
+                  : 'Admission Chances Calculator',
+              subtitle: AppStrings.isAr(context)
+                  ? 'احسب فرص قبولك ونسبة المنافسة لمعدلك'
+                  : 'Calculate admission odds & competition',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdmissionChanceScreen(),
+                ),
+              ),
+            ),
+            _buildProfileOptionTile(
+              icon: Icons.compare_arrows_rounded,
+              title: AppStrings.isAr(context)
+                  ? 'أداة مقارنة الجامعات والكليات'
+                  : 'Compare Universities',
+              subtitle: AppStrings.isAr(context)
+                  ? 'مقارنة حية بين كليتين جنباً إلى جنب'
+                  : 'Side-by-side college comparison',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const UniversityCompareScreen(),
+                ),
+              ),
+            ),
+            _buildProfileOptionTile(
+              icon: Icons.payments_rounded,
+              title: AppStrings.isAr(context)
+                  ? 'حاسبة الأقساط والتخفيضات'
+                  : 'Tuition & Discounts',
+              subtitle: AppStrings.isAr(context)
+                  ? 'حساب الأقساط وجدول الدفعات المقسطة'
+                  : 'Installment schedules & discount rates',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TuitionCalculatorScreen(),
+                ),
+              ),
             ),
           ],
         ),
@@ -558,8 +660,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
-                const SizedBox(height: 14),
-
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: AppColors.primaryDark,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      AppStrings.isAr(context)
+                          ? 'أدوات الطالب وخطتي الأكاديمية'
+                          : 'My Academic Tools & Plan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMain(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOptionTile(
+                  icon: Icons.checklist_rtl_rounded,
+                  title: AppStrings.isAr(context)
+                      ? 'مخطط ومهام التقديم الجامعي'
+                      : 'Admission Roadmap',
+                  subtitle: AppStrings.isAr(context)
+                      ? 'متابعة المستمسكات والخطوات دون اتصال'
+                      : 'Offline admission milestones',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdmissionChecklistScreen(),
+                    ),
+                  ),
+                ),
+                _buildProfileOptionTile(
+                  icon: Icons.playlist_add_check_circle_rounded,
+                  title: AppStrings.isAr(context)
+                      ? 'استمارة رغباتي وملاحظاتي'
+                      : 'My College Wishlist',
+                  subtitle: AppStrings.isAr(context)
+                      ? 'ترتيب الكليات وتدوين الملاحظات الشخصية'
+                      : 'Personal college preferences & notes',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StudentWishlistScreen(),
+                    ),
+                  ),
+                ),
+                _buildProfileOptionTile(
+                  icon: Icons.calculate_rounded,
+                  title: AppStrings.isAr(context)
+                      ? 'حاسبة فرص القبول الذكية'
+                      : 'Admission Chances Calculator',
+                  subtitle: AppStrings.isAr(context)
+                      ? 'احسب فرص قبولك ونسبة المنافسة لمعدلك'
+                      : 'Calculate admission odds & competition',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdmissionChanceScreen(
+                        initialGpa: average,
+                        initialTrack: track,
+                      ),
+                    ),
+                  ),
+                ),
+                _buildProfileOptionTile(
+                  icon: Icons.compare_arrows_rounded,
+                  title: AppStrings.isAr(context)
+                      ? 'أداة مقارنة الجامعات والكليات'
+                      : 'Compare Universities',
+                  subtitle: AppStrings.isAr(context)
+                      ? 'مقارنة حية بين كليتين جنباً إلى جنب'
+                      : 'Side-by-side college comparison',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UniversityCompareScreen(),
+                    ),
+                  ),
+                ),
+                _buildProfileOptionTile(
+                  icon: Icons.payments_rounded,
+                  title: AppStrings.isAr(context)
+                      ? 'حاسبة الأقساط والتخفيضات'
+                      : 'Tuition & Discounts',
+                  subtitle: AppStrings.isAr(context)
+                      ? 'حساب الأقساط وجدول الدفعات المقسطة'
+                      : 'Installment schedules & discount rates',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TuitionCalculatorScreen(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
                 Text(
                   AppStrings.favUniversities(context),
                   style: TextStyle(

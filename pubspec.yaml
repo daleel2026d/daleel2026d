@@ -2,7 +2,7 @@ name: uni_guide_app
 description: "دليل مستقبلي - التطبيق الأكاديمي الشامل للجامعات والكليات والمنح والفرص التدريبية."
 publish_to: 'none'
 
-version: 2.0.0+11
+version: 2.0.0+39
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
