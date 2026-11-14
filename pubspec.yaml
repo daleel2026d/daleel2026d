@@ -1,8 +1,8 @@
-name: uni_guide_app
-description: "دليل مستقبلي - التطبيق الأكاديمي الشامل للجامعات والكليات والمنح والفرص التدريبية."
+name: daleel_mustaqbali_app
+description: "دليل مستقبلي - المنصة الأكاديمية الذكية للجامعات والمنح والهجرة العالمية وأدوات الطالب."
 publish_to: 'none'
 
-version: 2.0.0+39
+version: 3.0.0+40
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -14,15 +14,12 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  firebase_core: ^4.11.0
-  cloud_firestore: ^6.6.0
-  firebase_auth: ^6.5.3
   url_launcher: ^6.3.2
   google_sign_in: ^6.2.2
   cached_network_image: ^3.4.1
-  firebase_storage: ^13.6.0
   image_picker: ^1.2.4
   shared_preferences: ^2.3.5
+  supabase_flutter: ^2.18.3
 
 dev_dependencies:
   flutter_test:
@@ -36,11 +33,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/icon/app_icon.png
-    - assets/images/home_header.jpg
-    - assets/images/WhatsApp Image 2026-08-16 at 5.18.26 PM.jpeg
+    - assets/images/daleel_hero_banner.jpg
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/WhatsApp Image 2026-08-16 at 5.18.26 PM.jpeg"
+  image_path: "assets/icon/daleel_app_logo.png"

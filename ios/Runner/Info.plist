@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>دليل مستقبلي | Future Guide</string>
+	<string>دليل مستقبلي</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>uni_guide_app</string>
+	<string>daleel_mustaqbali_app</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -60,11 +60,11 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>يحتاج التطبيق إلى إذن الكاميرا لالتقاط ورفع الصور للجامعات والمراكز والمنشورات.</string>
+	<string>يستخدم التطبيق الكاميرا لالتقاط وإرفاق صور الشعارات والمنشورات الأكاديمية داخل ملف الجامعة أو مركز التدريب. (Used to capture and attach academic logos and post photos).</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>يحتاج التطبيق إلى إذن الوصول لمكتبة الصور لاختيار وتحميل صور الشعارات والأغلفة والمنشورات.</string>
+	<string>يستخدم التطبيق مكتبة الصور لاختيار ورفع صور الشعارات والأغلفة والمنشورات الأكاديمية عند تحديث بيانات المؤسسة التعليمية. (Used to select and upload institution logos, covers, and academic post images).</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>يحتاج التطبيق إلى إذن لحفظ الصور في مكتبة الصور على جهازك.</string>
+	<string>يستخدم التطبيق هذا الإذن لحفظ الصور والملفات الإرشادية في مكتبة الصور على جهازك عند طلبك. (Used to save academic guide images to your photo library upon request).</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
