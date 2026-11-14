@@ -4,16 +4,17 @@ import '../models/university_model.dart';
 import '../services/app_localizations.dart';
 import '../main.dart';
 import '../screens/tools/student_wishlist_screen.dart';
-import '../screens/tools/university_compare_screen.dart';
 
 class CollegeCard extends StatelessWidget {
   final College college;
   final University? university;
+  final bool showGpa;
 
   const CollegeCard({
     super.key,
     required this.college,
     this.university,
+    this.showGpa = true,
   });
 
   @override
@@ -71,24 +72,25 @@ class CollegeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
+              if (showGpa && college.minGpa > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    '${AppStrings.schoolAverage(context)} ${college.minGpa}',
+                    style: const TextStyle(
+                      color: Color(0xFF10B981),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                child: Text(
-                  '${AppStrings.schoolAverage(context)} ${college.minGpa}',
-                  style: const TextStyle(
-                    color: Color(0xFF10B981),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
             ],
           ),
           if (university != null) ...[
@@ -126,26 +128,6 @@ class CollegeCard extends StatelessWidget {
                         ),
                       );
                     }
-                  },
-                ),
-                const SizedBox(width: 8),
-                // زر المقارنة
-                TextButton.icon(
-                  icon: const Icon(Icons.compare_arrows_rounded, size: 17),
-                  label: Text(
-                    isAr ? 'مقارنة' : 'Compare',
-                    style: const TextStyle(fontSize: 11.5),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UniversityCompareScreen(
-                          preselectedCollege1: college,
-                          preselectedUni1: university,
-                        ),
-                      ),
-                    );
                   },
                 ),
               ],

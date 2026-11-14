@@ -1,25 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'services/app_controller.dart';
+import 'services/supabase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // تفعيل التخزين المحلي الدائم للفايربيس لفتح الصفحات والبيانات فورياً دون انتظار الشبكة
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  // تهيئة Supabase واسترجاع الكاش المحلي قبل رسم الواجهة مباشرة لفتح التطبيق بسرعة فائقة
+  await SupabaseService.initialize();
 
   runApp(const MyApp());
 }
@@ -171,7 +164,10 @@ class MyApp extends StatelessWidget {
           themeMode: controller.themeMode,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          locale: controller.locale,
+
+          // جعل العربية هي اللغة المعتمدة دائماً
+          locale: controller.locale ?? const Locale('ar'),
+
           supportedLocales: const [
             Locale('ar'),
             Locale('en'),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart';
 import '../services/app_controller.dart';
 import '../services/app_localizations.dart';
@@ -729,7 +728,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: _showSupportBottomSheet,
                     ),
 
-                    if (FirebaseAuth.instance.currentUser != null) ...[
+                    if (_authService.currentUser != null) ...[
                       Divider(
                         height: 1,
                         indent: 60,

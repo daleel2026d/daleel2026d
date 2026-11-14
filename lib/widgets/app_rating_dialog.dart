@@ -31,6 +31,16 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
     Navigator.of(context).pop();
   }
 
+  Future<void> _submitPositiveRating() async {
+    await RatingService.launchStoreListing();
+    if (!mounted) return;
+    setState(() => _feedbackSubmitted = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _submitFeedback() async {
     final text = _feedbackController.text.trim();
     if (text.isNotEmpty) {
@@ -186,8 +196,8 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
                         ),
                         child: Text(
                           isAr
-                          ? 'سعداء جداً بإعجابك! نسعد بدعمك بتقييم 5 نجوم على متجر Google Play ⭐'
-                          : 'We are thrilled! Please consider rating us 5 stars on Google Play ⭐',
+                          ? 'سعداء جداً بإعجابك! شكراً لدعمك وتقييمك لتطبيق دليل مستقبلي ⭐'
+                          : 'We are thrilled! Thank you for rating and supporting Future Guide ⭐',
                           style: TextStyle(
                             fontSize: 12.5,
                             color: AppColors.textMain(context),
@@ -201,13 +211,10 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
                         width: double.infinity,
                         height: 48,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            RatingService.launchStoreListing();
-                          },
-                          icon: const Icon(Icons.rate_review_rounded, size: 20),
+                          onPressed: _submitPositiveRating,
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
                           label: Text(
-                            isAr ? 'تقييم في متجر التطبيقات' : 'Rate on Store',
+                            isAr ? 'إرسال التقييم' : 'Submit Rating',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(

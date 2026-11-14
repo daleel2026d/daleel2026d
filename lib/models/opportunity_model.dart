@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'college_model.dart';
 import 'post_model.dart';
 import '../services/content_sanitizer.dart';
@@ -66,16 +65,16 @@ class Opportunity {
     String date = '';
     final rawDate = data['date'];
     if (rawDate != null) {
-      date = rawDate is Timestamp
-          ? rawDate.toDate().toIso8601String()
+      date = rawDate is DateTime
+          ? rawDate.toIso8601String()
           : rawDate.toString();
     }
 
     String registrationDeadline = '';
     final rawDeadline = data['registrationDeadline'];
     if (rawDeadline != null) {
-      registrationDeadline = rawDeadline is Timestamp
-          ? rawDeadline.toDate().toIso8601String()
+      registrationDeadline = rawDeadline is DateTime
+          ? rawDeadline.toIso8601String()
           : rawDeadline.toString();
     }
 

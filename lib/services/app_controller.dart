@@ -5,7 +5,9 @@ class AppController extends ChangeNotifier {
   AppController._internal();
 
   ThemeMode _themeMode = ThemeMode.system;
-  Locale? _locale; // null يعني اتباع لغة نظام الهاتف تلقائياً
+
+  // ضبط اللغة الافتراضية على العربية دائماً بدلاً من null
+  Locale? _locale = const Locale('ar');
 
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;

@@ -60,6 +60,7 @@ class _ScholarshipsOpportunitiesScreenState
   Widget _buildTopTrainingCentersHeader() {
     return StreamBuilder<List<TrainingCenter>>(
       stream: _firestoreService.getAllTrainingCenters(),
+      initialData: _firestoreService.cachedTrainingCenters,
       builder: (context, snapshot) {
         final count = snapshot.data?.length ?? 0;
         final isSelected = _selectedTab == 'centers';
@@ -251,8 +252,10 @@ class _ScholarshipsOpportunitiesScreenState
   Widget _buildScholarshipsView() {
     return StreamBuilder<List<Scholarship>>(
       stream: _firestoreService.getAllScholarships(),
+      initialData: _firestoreService.cachedScholarships,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            (snapshot.data == null || snapshot.data!.isEmpty)) {
           return const Center(
             child: CircularProgressIndicator(color: AppColors.primaryDark),
           );
@@ -323,12 +326,16 @@ class _ScholarshipsOpportunitiesScreenState
   Widget _buildOpportunitiesView() {
     return StreamBuilder<List<Opportunity>>(
       stream: _firestoreService.getAllOpportunities(),
+      initialData: _firestoreService.cachedOpportunities,
       builder: (context, oppSnapshot) {
         return StreamBuilder<List<TrainingCenter>>(
           stream: _firestoreService.getAllTrainingCenters(),
+          initialData: _firestoreService.cachedTrainingCenters,
           builder: (context, centerSnapshot) {
             if (oppSnapshot.connectionState == ConnectionState.waiting &&
-                centerSnapshot.connectionState == ConnectionState.waiting) {
+                centerSnapshot.connectionState == ConnectionState.waiting &&
+                (oppSnapshot.data == null || oppSnapshot.data!.isEmpty) &&
+                (centerSnapshot.data == null || centerSnapshot.data!.isEmpty)) {
               return const Center(
                 child: CircularProgressIndicator(color: AppColors.primaryDark),
               );
@@ -429,12 +436,16 @@ class _ScholarshipsOpportunitiesScreenState
   Widget _buildTrainingCentersView() {
     return StreamBuilder<List<TrainingCenter>>(
       stream: _firestoreService.getAllTrainingCenters(),
+      initialData: _firestoreService.cachedTrainingCenters,
       builder: (context, centersSnapshot) {
         return StreamBuilder<List<Opportunity>>(
           stream: _firestoreService.getAllOpportunities(),
+          initialData: _firestoreService.cachedOpportunities,
           builder: (context, oppsSnapshot) {
             if (centersSnapshot.connectionState == ConnectionState.waiting &&
-                oppsSnapshot.connectionState == ConnectionState.waiting) {
+                oppsSnapshot.connectionState == ConnectionState.waiting &&
+                (centersSnapshot.data == null || centersSnapshot.data!.isEmpty) &&
+                (oppsSnapshot.data == null || oppsSnapshot.data!.isEmpty)) {
               return const Center(
                 child: CircularProgressIndicator(color: AppColors.primaryDark),
               );
@@ -603,7 +614,7 @@ class _ScholarshipsOpportunitiesScreenState
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '${centerOpps.length} ${AppStrings.isAr(context) ? 'فرص' : 'Opps'}',
+                                AppStrings.isAr(context) ? 'فرص متاحة' : 'Available Opps',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -673,8 +684,8 @@ class _ScholarshipsOpportunitiesScreenState
                               label: Text(
                                 centerOpps.isNotEmpty
                                     ? (AppStrings.isAr(context)
-                                        ? 'الفرص والتفاصيل (${centerOpps.length})'
-                                        : 'Details & Opps (${centerOpps.length})')
+                                        ? 'الفرص والتفاصيل'
+                                        : 'Details & Opps')
                                     : (AppStrings.isAr(context)
                                         ? 'تفاصيل المركز'
                                         : 'Center Details'),
@@ -911,8 +922,8 @@ class _ScholarshipsOpportunitiesScreenState
                       if (centerOpps.isNotEmpty) ...[
                         Text(
                           AppStrings.isAr(context)
-                              ? 'الفرص والدورات المتاحة حالياً (${centerOpps.length}):'
-                              : 'Available Courses & Opps (${centerOpps.length}):',
+                              ? 'الفرص والدورات المتاحة حالياً:'
+                              : 'Available Courses & Opps:',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

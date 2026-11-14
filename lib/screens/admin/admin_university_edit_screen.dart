@@ -103,7 +103,7 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم رفع صورة واجهة الجامعة بنجاح إلى Firebase Storage'),
+            content: Text('تم رفع صورة واجهة الجامعة بنجاح'),
             backgroundColor: Colors.green,
           ),
         );
@@ -113,8 +113,9 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
         setState(() => _isUploadingCover = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الصورة إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -139,7 +140,7 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم رفع شعار الجامعة بنجاح إلى Firebase Storage'),
+            content: Text('تم رفع شعار الجامعة بنجاح'),
             backgroundColor: Colors.green,
           ),
         );
@@ -149,8 +150,9 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
         setState(() => _isUploadingLogo = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الشعار إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -175,7 +177,7 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم رفع الصورة وإضافتها للمعرض بنجاح عبر Firebase Storage'),
+            content: Text('تم رفع الصورة وإضافتها للمعرض بنجاح'),
             backgroundColor: Colors.green,
           ),
         );
@@ -185,11 +187,62 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
         setState(() => _isUploadingGallery = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الصورة إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
+    }
+  }
+
+  Future<void> _showManualUrlDialog({
+    required String title,
+    required TextEditingController controller,
+  }) async {
+    final tempCtrl = TextEditingController(text: controller.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'يمكنك إدخال أو لصق رابط صورة مباشر (URL من الإنترنت) هنا:',
+              style: TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: tempCtrl,
+              decoration: const InputDecoration(
+                hintText: 'https://...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, tempCtrl.text.trim()),
+            child: const Text('حفظ الرابط'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        controller.text = result;
+      });
     }
   }
 
@@ -334,17 +387,17 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                 icon: Icon(Icons.info_outline_rounded, size: 20),
                 text: 'معلومات الجامعة',
               ),
-              Tab(
-                icon: const Icon(Icons.school_rounded, size: 20),
-                text: 'الكليات والأقسام (${_colleges.length})',
+              const Tab(
+                icon: Icon(Icons.school_rounded, size: 20),
+                text: 'الكليات والأقسام',
               ),
-              Tab(
-                icon: const Icon(Icons.newspaper_rounded, size: 20),
-                text: 'المنشورات (${_posts.length})',
+              const Tab(
+                icon: Icon(Icons.newspaper_rounded, size: 20),
+                text: 'المنشورات',
               ),
-              Tab(
-                icon: const Icon(Icons.photo_library_rounded, size: 20),
-                text: 'معرض الصور (${_gallery.length})',
+              const Tab(
+                icon: Icon(Icons.photo_library_rounded, size: 20),
+                text: 'معرض الصور',
               ),
             ],
           ),
@@ -516,12 +569,12 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'صور وواجهة الجامعة (تخزين مباشر في Firebase)',
+                              'صور وواجهة الجامعة (تخزين سحابي مباشر)',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                             Text(
-                              'ارفع الصور مباشرة من هاتفك أو جهازك وسيتم حفظها وتعديلها في Firebase دون الحاجة لروابط',
+                              'ارفع الصور مباشرة من هاتفك أو جهازك وسيتم حفظها وتعديلها سحابياً دون الحاجة لروابط',
                               style: TextStyle(
                                   fontSize: 11, color: Color(0xFF64748B)),
                             ),
@@ -581,7 +634,7 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                                 const SizedBox(width: 5),
                                 Text(
                                   _coverCtrl.text.contains('firebasestorage')
-                                      ? 'مخزنة في Firebase Storage'
+                                      ? 'مخزنة سحابياً'
                                       : 'صورة الواجهة الحالية',
                                   style: const TextStyle(
                                       color: Colors.white,
@@ -626,6 +679,20 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          tooltip: 'إدخال رابط الواجهة يدوياً',
+                          onPressed: () => _showManualUrlDialog(
+                            title: 'رابط صورة واجهة الجامعة',
+                            controller: _coverCtrl,
+                          ),
+                          icon: const Icon(Icons.link,
+                              color: Color(0xFF0284C7)),
+                          style: IconButton.styleFrom(
+                            backgroundColor:
+                                const Color(0xFF0284C7).withValues(alpha: 0.1),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -713,6 +780,15 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextButton.icon(
+                            onPressed: () => _showManualUrlDialog(
+                              title: 'رابط صورة واجهة الجامعة',
+                              controller: _coverCtrl,
+                            ),
+                            icon: const Icon(Icons.link, size: 16),
+                            label: const Text('أو إدخال رابط صورة يدوي'),
                           ),
                         ],
                       ),
@@ -816,6 +892,17 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                                   ),
                                 ),
                               ),
+                            TextButton.icon(
+                              onPressed: () => _showManualUrlDialog(
+                                title: 'رابط شعار الجامعة',
+                                controller: _logoCtrl,
+                              ),
+                              icon: const Icon(Icons.link, size: 16),
+                              label: const Text(
+                                'أو إدخال رابط الشعار يدوي',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -891,10 +978,10 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'قائمة الكليات (${_colleges.length})',
+              const Text(
+                'قائمة الكليات',
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               ElevatedButton.icon(
                 onPressed: () => _openCollegeDialog(),
@@ -1125,10 +1212,10 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'منشورات وأخبار الجامعة (${_posts.length})',
+              const Text(
+                'منشورات وأخبار الجامعة',
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               ElevatedButton.icon(
                 onPressed: () => _openPostDialog(),
@@ -1456,8 +1543,8 @@ class _AdminUniversityEditScreenState extends State<AdminUniversityEditScreen>
                       : const Icon(Icons.cloud_upload_outlined, size: 20),
                   label: Text(
                     _isUploadingGallery
-                        ? 'جارٍ رفع الصورة إلى Firebase Storage...'
-                        : 'رفع صورة جديدة للمعرض من الجهاز إلى Firebase',
+                        ? 'جارٍ رفع الصورة سحابياً...'
+                        : 'رفع صورة جديدة للمعرض من الجهاز',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 13.5),
                   ),

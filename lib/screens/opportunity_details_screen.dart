@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/opportunity_model.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/app_localizations.dart';
 import '../widgets/custom_cached_image.dart';
-import '../widgets/college_card.dart';
 import '../widgets/post_card.dart';
 import '../main.dart';
 import 'login_screen.dart';
@@ -36,12 +35,12 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
   }
 
   void _listenSavedState() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
 
     _firestoreService.getUserData(uid).listen((doc) {
       if (!doc.exists || !mounted) return;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       final savedIds = List<String>.from(data['savedOpportunities'] ?? []);
       setState(() {
         _isSaved = savedIds.contains(widget.opportunity.id);
@@ -50,7 +49,7 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
   }
 
   Future<void> _toggleSaveOpportunity() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -151,8 +150,8 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
     return Directionality(
       textDirection: AppStrings.direction(context),
       child: DefaultTabController(
-        length: 4,
-        initialIndex: widget.initialTabIndex,
+        length: 2,
+        initialIndex: widget.initialTabIndex.clamp(0, 1),
         child: Scaffold(
           backgroundColor: AppColors.scaffoldBg(context),
           body: NestedScrollView(
@@ -294,17 +293,9 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
                         fontWeight: FontWeight.normal,
                         fontSize: 13.5,
                       ),
-                      tabs: [
-                        Tab(
-                            text:
-                                'المنشورات (${widget.opportunity.posts.length})'),
-                        Tab(
-                            text:
-                                'المحاور والتخصصات (${widget.opportunity.colleges.length})'),
-                        const Tab(text: 'عن الفعالية'),
-                        Tab(
-                            text:
-                                'معرض الصور (${widget.opportunity.gallery.length})'),
+                      tabs: const [
+                        Tab(text: 'المنشورات'),
+                        Tab(text: 'عن الفعالية'),
                       ],
                     ),
                   ),
@@ -314,9 +305,7 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
             body: TabBarView(
               children: [
                 _buildPostsTab(context),
-                _buildTopicsTab(context),
                 _buildAboutTab(context),
-                _buildGalleryTab(context),
               ],
             ),
           ),
@@ -344,25 +333,6 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
         universityName: widget.opportunity.title,
         universityLogo: widget.opportunity.imageUrl,
       ),
-    );
-  }
-
-  Widget _buildTopicsTab(BuildContext context) {
-    if (widget.opportunity.colleges.isEmpty) {
-      return Center(
-        child: Text(
-          AppStrings.isAr(context)
-              ? 'الفعالية متاحة لكافة الطلاب والمهتمين'
-              : 'Event open for all interested students',
-          style: TextStyle(color: AppColors.textMuted(context)),
-        ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: widget.opportunity.colleges.length,
-      itemBuilder: (context, index) =>
-          CollegeCard(college: widget.opportunity.colleges[index]),
     );
   }
 
@@ -523,32 +493,5 @@ class _OpportunityDetailsScreenState extends State<OpportunityDetailsScreen> {
     );
   }
 
-  Widget _buildGalleryTab(BuildContext context) {
-    if (widget.opportunity.gallery.isEmpty) {
-      return Center(
-        child: Text(
-          AppStrings.isAr(context)
-              ? 'لا توجد صور حالياً'
-              : 'No photos available currently',
-          style: TextStyle(color: AppColors.textMuted(context)),
-        ),
-      );
-    }
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: widget.opportunity.gallery.length,
-      itemBuilder: (context, index) => CustomCachedImage(
-        imageUrl: widget.opportunity.gallery[index],
-        fit: BoxFit.cover,
-        borderRadius: BorderRadius.circular(8),
-        placeholderIcon: Icons.image_rounded,
-        iconSize: 24,
-      ),
-    );
-  }
 }
+

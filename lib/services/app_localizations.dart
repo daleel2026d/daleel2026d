@@ -17,6 +17,8 @@ class AppStrings {
       isAr(context) ? 'الجامعات' : 'Universities';
   static String navScholarships(BuildContext context) =>
       isAr(context) ? 'المنح والفرص' : 'Scholarships & Ops';
+  static String navImmigration(BuildContext context) =>
+      isAr(context) ? 'الهجرة' : 'Immigration';
   static String navProfile(BuildContext context) =>
       isAr(context) ? 'الحساب' : 'Account';
   static String pressAgainToExit(BuildContext context) =>
@@ -148,8 +150,8 @@ class AppStrings {
       isAr(context) ? 'حفظ الجامعات المفضلة' : 'Save Favorite Universities';
   static String featFavUnisDesc(BuildContext context) =>
       isAr(context)
-          ? 'احفظ الجامعات والكليات التي تهمك للرجوع إليها ومقارنتها بسهولة.'
-          : 'Bookmark universities and colleges that interest you to compare easily.';
+          ? 'احفظ الجامعات والكليات التي تهمك للرجوع إليها بسهولة في أي وقت.'
+          : 'Bookmark universities and colleges that interest you to review easily anytime.';
   static String featOpp(BuildContext context) =>
       isAr(context) ? 'متابعة المنح والفرص' : 'Track Scholarships & Ops';
   static String featOppDesc(BuildContext context) =>
@@ -279,23 +281,19 @@ class AppStrings {
   static String openPrivacyPolicyLink(BuildContext context) =>
       isAr(context) ? 'فتح سياسة الخصوصية الرسمية' : 'Open Official Privacy Policy';
   static String version(BuildContext context) =>
-      isAr(context) ? 'الإصدار 2.0.0' : 'Version 2.0.0';
+      isAr(context) ? 'الإصدار 3.0.0' : 'Version 3.0.0';
 
   // Student Smart Toolkit
   static String studentToolsTitle(BuildContext context) =>
       isAr(context) ? 'حقيبة أدوات الطالب الذكية' : 'Student Smart Toolkit';
   static String studentToolsSubtitle(BuildContext context) =>
       isAr(context)
-          ? 'أدوات تفاعلية متقدمة لحساب فرص القبول، المقارنة المباشرة، والتخطيط الأكاديمي'
-          : 'Interactive tools for admission chances, side-by-side comparisons & academic planning';
+          ? 'أدوات تفاعلية متقدمة لحساب فرص القبول، وإدارة الرغبات، والتخطيط الأكاديمي'
+          : 'Interactive tools for admission chances, preferences & academic planning';
   static String toolAdmissionCalculator(BuildContext context) =>
       isAr(context) ? 'حاسبة فرص القبول' : 'Admission Chances';
   static String toolAdmissionCalculatorDesc(BuildContext context) =>
       isAr(context) ? 'احسب فرص قبولك والمفاضلة التنافسية' : 'Calculate admission likelihood & competition';
-  static String toolCompare(BuildContext context) =>
-      isAr(context) ? 'مقارنة الجامعات' : 'Compare Universities';
-  static String toolCompareDesc(BuildContext context) =>
-      isAr(context) ? 'قارن بين كليتين أو جامعتين جنباً إلى جنب' : 'Compare two universities or colleges side-by-side';
   static String toolChecklist(BuildContext context) =>
       isAr(context) ? 'مخطط مهام التقديم' : 'Admission Roadmap';
   static String toolChecklistDesc(BuildContext context) =>

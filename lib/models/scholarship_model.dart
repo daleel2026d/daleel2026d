@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'college_model.dart';
 import 'post_model.dart';
 import '../services/content_sanitizer.dart';
@@ -46,10 +45,9 @@ class Scholarship {
     String deadlineStr = '';
     final rawDeadline = data['deadline'];
     if (rawDeadline != null) {
-      if (rawDeadline is Timestamp) {
-        final dateTime = rawDeadline.toDate();
+      if (rawDeadline is DateTime) {
         deadlineStr =
-            "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
+            "${rawDeadline.year}-${rawDeadline.month.toString().padLeft(2, '0')}-${rawDeadline.day.toString().padLeft(2, '0')}";
       } else {
         deadlineStr = rawDeadline.toString();
       }

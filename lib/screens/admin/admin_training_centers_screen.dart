@@ -33,8 +33,8 @@ class _AdminTrainingCentersScreenState
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_business_rounded),
-            tooltip: 'إضافة مركز تدريب',
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'إضافة مركز تدريب جديد',
             onPressed: () => _openCenterDialog(),
           ),
         ],
@@ -42,7 +42,7 @@ class _AdminTrainingCentersScreenState
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openCenterDialog(),
         icon: const Icon(Icons.add),
-        label: const Text('إضافة مركز جديد'),
+        label: const Text('إضافة مركز تدريب جديد'),
         backgroundColor: AppColors.primaryDark,
         foregroundColor: Colors.white,
       ),
@@ -73,8 +73,10 @@ class _AdminTrainingCentersScreenState
           Expanded(
             child: StreamBuilder<List<TrainingCenter>>(
               stream: _firestoreService.getAllTrainingCenters(),
+              initialData: _firestoreService.cachedTrainingCenters,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    (snapshot.data == null || snapshot.data!.isEmpty)) {
                   return const Center(
                     child: CircularProgressIndicator(color: AppColors.primaryDark),
                   );
@@ -195,6 +197,31 @@ class _AdminTrainingCentersScreenState
                                         fontSize: 11.5,
                                         color: AppColors.textMuted(context),
                                       ),
+                                    ),
+                                  ],
+                                  if (center.managerEmail.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.manage_accounts_outlined,
+                                          size: 13,
+                                          color: Color(0xFF2563EB),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            'المدير: ${center.managerEmail}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF2563EB),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                   if (center.specialties.isNotEmpty) ...[

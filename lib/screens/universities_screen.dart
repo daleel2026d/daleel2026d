@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/app_localizations.dart';
 import '../models/university_model.dart';
@@ -100,11 +100,11 @@ class _UniversitiesScreenState extends State<UniversitiesScreen> {
   }
 
   void _listenToFavorites() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     _firestoreService.getUserData(uid).listen((doc) {
       if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data()!;
         setState(
           () => _favoriteIds = List<String>.from(data['favorites'] ?? []),
         );
@@ -113,7 +113,7 @@ class _UniversitiesScreenState extends State<UniversitiesScreen> {
   }
 
   Future<void> _toggleFavorite(String universityId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -692,8 +692,10 @@ class _UniversitiesScreenState extends State<UniversitiesScreen> {
         Expanded(
           child: StreamBuilder<List<University>>(
             stream: _firestoreService.getAllUniversities(),
+            initialData: _firestoreService.cachedUniversities,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  (snapshot.data == null || snapshot.data!.isEmpty)) {
                 return const Center(
                   child:
                       CircularProgressIndicator(color: AppColors.primaryDark),

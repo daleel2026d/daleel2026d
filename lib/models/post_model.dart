@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/content_sanitizer.dart';
 
 class Post {
@@ -21,8 +20,8 @@ class Post {
     final rawDate = data['date'];
     String date = '';
     if (rawDate != null) {
-      if (rawDate is Timestamp) {
-        date = rawDate.toDate().toIso8601String();
+      if (rawDate is DateTime) {
+        date = rawDate.toIso8601String();
       } else {
         date = rawDate.toString();
       }

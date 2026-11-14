@@ -4,7 +4,6 @@ import '../services/app_localizations.dart';
 import '../main.dart';
 import 'custom_cached_image.dart';
 import '../screens/tools/student_wishlist_screen.dart';
-import '../screens/tools/university_compare_screen.dart';
 
 class MatchedCollegeCard extends StatelessWidget {
   final CollegeWithUniversity item;
@@ -239,23 +238,6 @@ class MatchedCollegeCard extends StatelessWidget {
                                   ),
                                 );
                               }
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.compare_arrows_rounded, size: 20),
-                            tooltip: AppStrings.isAr(context) ? 'مقارنة' : 'Compare',
-                            color: AppColors.primaryDark,
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => UniversityCompareScreen(
-                                    preselectedCollege1: college,
-                                    preselectedUni1: uni,
-                                  ),
-                                ),
-                              );
                             },
                           ),
                           const SizedBox(width: 4),

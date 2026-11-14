@@ -71,8 +71,10 @@ class _AdminUniversitiesScreenState extends State<AdminUniversitiesScreen> {
           Expanded(
             child: StreamBuilder<List<University>>(
               stream: _firestoreService.getAllUniversities(),
+              initialData: _firestoreService.cachedUniversities,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    (snapshot.data == null || snapshot.data!.isEmpty)) {
                   return const Center(
                     child: CircularProgressIndicator(color: AppColors.primaryDark),
                   );
@@ -131,7 +133,7 @@ class _AdminUniversitiesScreenState extends State<AdminUniversitiesScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${uni.city} • ${uni.type} • ${uni.colleges.length} كليات',
+                          '${uni.city} • ${uni.type}',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textMuted(context),

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../main.dart';
 import '../services/app_localizations.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   final String currentName;
@@ -52,9 +51,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (average == null) return;
 
     setState(() => _isSaving = true);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid != null) {
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await FirestoreService().updateUserProfile(uid, {
         'name': _nameController.text.trim(),
         'average': average,
         'track': _selectedTrack,

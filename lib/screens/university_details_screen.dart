@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/university_model.dart';
 import '../models/post_model.dart';
 import '../widgets/college_card.dart';
 import '../widgets/custom_cached_image.dart';
 import '../main.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/app_localizations.dart';
 import '../services/content_sanitizer.dart';
@@ -49,11 +49,11 @@ class _UniversityDetailsScreenState extends State<UniversityDetailsScreen>
   }
 
   void _checkFavorite() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     _firestoreService.getUserData(uid).listen((doc) {
       if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data()!;
         final favs = List<String>.from(data['favorites'] ?? []);
         setState(() {
           _isFavorite = favs.contains(widget.university.id);
@@ -63,7 +63,7 @@ class _UniversityDetailsScreenState extends State<UniversityDetailsScreen>
   }
 
   Future<void> _toggleFavorite() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

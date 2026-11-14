@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,12 +11,11 @@ class RatingService {
   static const String _keyHasRated = 'rating_has_rated';
   static const String _keyDismissCount = 'rating_dismiss_count';
 
-  // معرّف التطبيق في متجر جوجل بلاي
-  static const String _playStorePackageName = 'com.uni_guide_app';
+  static const String _androidStorePackageId = 'com.omar.uniguide';
   static const String _storeWebUrl =
-      'https://play.google.com/store/apps/details?id=$_playStorePackageName';
+      'https://play.google.com/store/apps/details?id=$_androidStorePackageId';
   static const String _storeMarketUrl =
-      'market://details?id=$_playStorePackageName';
+      'market://details?id=$_androidStorePackageId';
 
   /// تسجيل فتح التطبيق وحساب عدد المرات
   static Future<void> recordAppOpen() async {
@@ -95,9 +95,12 @@ class RatingService {
     } catch (_) {}
   }
 
-  /// فتح صفحة التطبيق في متجر Google Play
+  /// حفظ التقييم وفتح المتجر على أندرويد فقط (لتوافق سياسات App Store Guideline 2.3.10)
   static Future<void> launchStoreListing() async {
     await markAsRated();
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
     try {
       final marketUri = Uri.parse(_storeMarketUrl);
       if (await canLaunchUrl(marketUri)) {

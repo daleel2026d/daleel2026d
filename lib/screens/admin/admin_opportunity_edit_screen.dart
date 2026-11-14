@@ -129,8 +129,9 @@ class _AdminOpportunityEditScreenState
         setState(() => _isUploadingCover = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الصورة إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -165,8 +166,9 @@ class _AdminOpportunityEditScreenState
         setState(() => _isUploadingLogo = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع البوستر إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -201,11 +203,62 @@ class _AdminOpportunityEditScreenState
         setState(() => _isUploadingGallery = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الصورة إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
+    }
+  }
+
+  Future<void> _showManualUrlDialog({
+    required String title,
+    required TextEditingController controller,
+  }) async {
+    final tempCtrl = TextEditingController(text: controller.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'يمكنك إدخال أو لصق رابط صورة مباشر (URL من الإنترنت) هنا:',
+              style: TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: tempCtrl,
+              decoration: const InputDecoration(
+                hintText: 'https://...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, tempCtrl.text.trim()),
+            child: const Text('حفظ الرابط'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        controller.text = result;
+      });
     }
   }
 
@@ -358,17 +411,17 @@ class _AdminOpportunityEditScreenState
                 icon: Icon(Icons.info_outline_rounded, size: 20),
                 text: 'معلومات الفعالية',
               ),
-              Tab(
-                icon: const Icon(Icons.school_rounded, size: 20),
-                text: 'المحاور والتخصصات (${_colleges.length})',
+              const Tab(
+                icon: Icon(Icons.school_rounded, size: 20),
+                text: 'المحاور والتخصصات',
               ),
-              Tab(
-                icon: const Icon(Icons.newspaper_rounded, size: 20),
-                text: 'المنشورات (${_posts.length})',
+              const Tab(
+                icon: Icon(Icons.newspaper_rounded, size: 20),
+                text: 'المنشورات',
               ),
-              Tab(
-                icon: const Icon(Icons.photo_library_rounded, size: 20),
-                text: 'معرض الصور (${_gallery.length})',
+              const Tab(
+                icon: Icon(Icons.photo_library_rounded, size: 20),
+                text: 'معرض الصور',
               ),
             ],
           ),
@@ -681,6 +734,20 @@ class _AdminOpportunityEditScreenState
                         ),
                         const SizedBox(width: 8),
                         IconButton.filledTonal(
+                          tooltip: 'إدخال رابط الواجهة يدوياً',
+                          onPressed: () => _showManualUrlDialog(
+                            title: 'رابط صورة واجهة الفعالية',
+                            controller: _coverCtrl,
+                          ),
+                          icon: const Icon(Icons.link,
+                              color: Color(0xFF0284C7)),
+                          style: IconButton.styleFrom(
+                            backgroundColor:
+                                const Color(0xFF0284C7).withValues(alpha: 0.1),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
                           tooltip: 'حذف صورة الواجهة',
                           onPressed: () => setState(() => _coverCtrl.clear()),
                           icon: const Icon(Icons.delete_outline,
@@ -944,10 +1011,10 @@ class _AdminOpportunityEditScreenState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'المحاور والتخصصات المستهدفة (${_colleges.length})',
+              const Text(
+                'المحاور والتخصصات المستهدفة',
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               ElevatedButton.icon(
                 onPressed: () => _openCollegeDialog(),
@@ -1156,10 +1223,10 @@ class _AdminOpportunityEditScreenState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'منشورات وتحديثات الفعالية (${_posts.length})',
+              const Text(
+                'منشورات وتحديثات الفعالية',
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               ElevatedButton.icon(
                 onPressed: () => _openPostDialog(),

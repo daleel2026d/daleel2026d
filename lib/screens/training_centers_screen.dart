@@ -72,8 +72,10 @@ class _TrainingCentersScreenState extends State<TrainingCentersScreen> {
             Expanded(
               child: StreamBuilder<List<TrainingCenter>>(
                 stream: _firestoreService.getAllTrainingCenters(),
+                initialData: _firestoreService.cachedTrainingCenters,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      (snapshot.data == null || snapshot.data!.isEmpty)) {
                     return const Center(
                       child: CircularProgressIndicator(
                         color: Color(0xFF7C3AED),
@@ -266,83 +268,12 @@ class _TrainingCentersScreenState extends State<TrainingCentersScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-
-                    const SizedBox(height: 12),
-
-                    // إحصائيات سريعة (الدورات + المنشورات)
-                    Row(
-                      children: [
-                        _buildStatBadge(
-                          icon: Icons.school_rounded,
-                          text: '${center.colleges.length} دورات وأقسام',
-                          color: const Color(0xFF0284C7),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildStatBadge(
-                          icon: Icons.newspaper_rounded,
-                          text: '${center.posts.length} منشورات',
-                          color: const Color(0xFFEA580C),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Text(
-                              AppStrings.isAr(context)
-                                  ? 'عرض التفاصيل'
-                                  : 'View Details',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF7C3AED),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              AppStrings.isAr(context)
-                                  ? Icons.arrow_back_ios_new_rounded
-                                  : Icons.arrow_forward_ios_rounded,
-                              size: 12,
-                              color: const Color(0xFF7C3AED),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatBadge({
-    required IconData icon,
-    required String text,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
       ),
     );
   }

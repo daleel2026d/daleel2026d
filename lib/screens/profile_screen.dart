@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_service.dart';
 import '../services/app_localizations.dart';
 import '../models/university_model.dart';
 import '../models/opportunity_model.dart';
+import '../models/training_center_model.dart';
 import '../widgets/custom_cached_image.dart';
 import '../main.dart';
 import 'login_screen.dart';
@@ -15,8 +14,8 @@ import 'settings_screen.dart';
 import '../services/auth_service.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/admin_university_edit_screen.dart';
+import 'admin/admin_training_center_edit_screen.dart';
 import 'tools/admission_chance_screen.dart';
-import 'tools/university_compare_screen.dart';
 import 'tools/admission_checklist_screen.dart';
 import 'tools/tuition_calculator_screen.dart';
 import 'tools/student_wishlist_screen.dart';
@@ -33,10 +32,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
     return Directionality(
       textDirection: AppStrings.direction(context),
-      child: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+      child: StreamBuilder<AppUser?>(
+        initialData: authService.currentUser,
+        stream: authService.authStateChanges,
         builder: (context, authSnapshot) {
           final user = authSnapshot.data;
           if (user == null) {
@@ -300,21 +301,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             _buildProfileOptionTile(
-              icon: Icons.compare_arrows_rounded,
-              title: AppStrings.isAr(context)
-                  ? 'أداة مقارنة الجامعات والكليات'
-                  : 'Compare Universities',
-              subtitle: AppStrings.isAr(context)
-                  ? 'مقارنة حية بين كليتين جنباً إلى جنب'
-                  : 'Side-by-side college comparison',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const UniversityCompareScreen(),
-                ),
-              ),
-            ),
-            _buildProfileOptionTile(
               icon: Icons.payments_rounded,
               title: AppStrings.isAr(context)
                   ? 'حاسبة الأقساط والتخفيضات'
@@ -505,10 +491,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      body: StreamBuilder<DocumentSnapshot>(
+      body: StreamBuilder<UserDocSnapshot>(
         stream: _firestoreService.getUserData(uid),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primaryDark),
             );
@@ -522,11 +509,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           }
 
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
-          final String name = userData['name'] ?? '';
-          final String email = userData['email'] ?? '';
-          final String track = userData['track'] ?? '';
-          final double average = (userData['average'] ?? 0).toDouble();
+          final userData = snapshot.data!.data()!;
+          final String name = (userData['name'] ?? '').toString();
+          final String email = (userData['email'] ?? '').toString();
+          final String track = (userData['track'] ?? '').toString();
+          final rawAvg = userData['average'];
+          final double average = rawAvg is num
+              ? rawAvg.toDouble()
+              : (double.tryParse((rawAvg ?? '0').toString()) ?? 0.0);
           final List<String> favoriteIds = List<String>.from(
             userData['favorites'] ?? [],
           );
@@ -600,7 +590,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
 
                 // لوحة التحكم الإدارية (تظهر للمتحكم بالتطبيق)
-                if (AuthService.isAdmin(FirebaseAuth.instance.currentUser))
+                if (AuthService.isAdmin(AuthService().currentUser) ||
+                    AuthService.adminEmails.contains(
+                      email.trim().toLowerCase(),
+                    ))
                   _buildProfileOptionTile(
                     icon: Icons.admin_panel_settings_outlined,
                     title: AppStrings.isAr(context)
@@ -624,7 +617,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   stream: _firestoreService.getUniversitiesManagedBy(
                     (email.isNotEmpty
                             ? email
-                            : FirebaseAuth.instance.currentUser?.email ?? '')
+                            : AuthService().currentUser?.email ?? '')
                         .trim()
                         .toLowerCase(),
                   ),
@@ -650,6 +643,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 MaterialPageRoute(
                                   builder: (_) => AdminUniversityEditScreen(
                                     university: uni,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    );
+                  },
+                ),
+
+                // إدارة مراكز التدريب (تظهر لأي إيميل مسجل كمدير لمركز تدريب)
+                StreamBuilder<List<TrainingCenter>>(
+                  stream: _firestoreService.getTrainingCentersManagedBy(
+                    (email.isNotEmpty
+                            ? email
+                            : AuthService().currentUser?.email ?? '')
+                        .trim()
+                        .toLowerCase(),
+                  ),
+                  builder: (context, snapshot) {
+                    final managedCenters = snapshot.data ?? [];
+                    if (managedCenters.isEmpty) return const SizedBox.shrink();
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final center in managedCenters)
+                          _buildProfileOptionTile(
+                            icon: Icons.business_center_outlined,
+                            title: AppStrings.isAr(context)
+                                ? 'إدارة مركز التدريب (${center.name})'
+                                : 'Manage Training Center (${center.name})',
+                            subtitle: AppStrings.isAr(context)
+                                ? 'تعديل بيانات ودورات وصور مركز التدريب'
+                                : 'Edit center details, courses & photos',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AdminTrainingCenterEditScreen(
+                                    center: center,
                                   ),
                                 ),
                               );
@@ -727,21 +761,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         initialGpa: average,
                         initialTrack: track,
                       ),
-                    ),
-                  ),
-                ),
-                _buildProfileOptionTile(
-                  icon: Icons.compare_arrows_rounded,
-                  title: AppStrings.isAr(context)
-                      ? 'أداة مقارنة الجامعات والكليات'
-                      : 'Compare Universities',
-                  subtitle: AppStrings.isAr(context)
-                      ? 'مقارنة حية بين كليتين جنباً إلى جنب'
-                      : 'Side-by-side college comparison',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const UniversityCompareScreen(),
                     ),
                   ),
                 ),

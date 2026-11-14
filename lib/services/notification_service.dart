@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification_model.dart';
 import '../models/university_model.dart';
 import '../models/scholarship_model.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 
 class NotificationService {
@@ -13,7 +13,7 @@ class NotificationService {
 
   // جلب تدفق إشعارات المستخدم الحالي
   Stream<List<AppNotification>> getNotificationsStream() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       return Stream.value([]);
     }
@@ -29,7 +29,7 @@ class NotificationService {
 
   // فحص وتوليد إشعارات ذكية مبنية على معدل الطالب
   Future<void> checkGpaMatches(double gpa, String track) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null || gpa <= 0) return;
 
     try {
@@ -62,7 +62,7 @@ class NotificationService {
     List<University> allUniversities,
     List<String> favoriteIds,
   ) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null || favoriteIds.isEmpty) return;
 
     try {
@@ -95,7 +95,7 @@ class NotificationService {
 
   // فحص وتوليد إشعارات المنح الدراسية الجديدة
   Future<void> notifyNewScholarships(List<Scholarship> scholarships) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null || scholarships.isEmpty) return;
 
     try {
@@ -120,28 +120,28 @@ class NotificationService {
 
   // تمييز إشعار كمقروء
   Future<void> markAsRead(String notificationId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     await _firestoreService.markNotificationAsRead(uid, notificationId);
   }
 
   // تمييز كل الإشعارات كمقروءة
   Future<void> markAllAsRead() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     await _firestoreService.markAllNotificationsAsRead(uid);
   }
 
   // حذف إشعار
   Future<void> deleteNotification(String notificationId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     await _firestoreService.deleteNotification(uid, notificationId);
   }
 
   // مسح جميع الإشعارات
   Future<void> clearAll() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     await _firestoreService.clearAllNotifications(uid);
   }

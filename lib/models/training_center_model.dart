@@ -18,6 +18,7 @@ class TrainingCenter {
   final List<College> colleges;
   final List<Post> posts;
   final List<String> gallery;
+  final String managerEmail;
 
   TrainingCenter({
     required this.id,
@@ -35,6 +36,7 @@ class TrainingCenter {
     this.colleges = const [],
     this.posts = const [],
     this.gallery = const [],
+    this.managerEmail = '',
   });
 
   static List<String> _extractStringList(dynamic list) {
@@ -123,6 +125,10 @@ class TrainingCenter {
           .map(ContentSanitizer.sanitizeImageUrl)
           .where((u) => u.isNotEmpty)
           .toList(),
+      managerEmail: (data['managerEmail'] ?? data['adminEmail'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase(),
     );
   }
 
@@ -142,6 +148,8 @@ class TrainingCenter {
       'colleges': colleges.map((c) => c.toMap()).toList(),
       'posts': posts.map((p) => p.toMap()).toList(),
       'gallery': gallery,
+      'managerEmail': managerEmail.trim().toLowerCase(),
+      'adminEmail': managerEmail.trim().toLowerCase(),
     };
   }
 }

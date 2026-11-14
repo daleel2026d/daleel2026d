@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post_model.dart';
 import '../main.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/app_localizations.dart';
 import 'custom_cached_image.dart';
@@ -40,11 +40,11 @@ class _PostCardState extends State<PostCard> {
   }
 
   void _checkInitialLike() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     _firestoreService.getUserData(uid).listen((doc) {
       if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data()!;
         final likedList = List<String>.from(data['likedPosts'] ?? []);
         setState(() {
           _isLiked = likedList.contains(_postKey);
@@ -54,7 +54,7 @@ class _PostCardState extends State<PostCard> {
   }
 
   Future<void> _toggleLike() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

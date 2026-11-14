@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/training_center_model.dart';
 import '../widgets/college_card.dart';
 import '../widgets/post_card.dart';
 import '../widgets/custom_cached_image.dart';
 import '../main.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/app_localizations.dart';
 
@@ -37,11 +37,11 @@ class _TrainingCenterDetailsScreenState
   }
 
   void _checkSaved() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     _firestoreService.getUserData(uid).listen((doc) {
       if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data()!;
         final saved = List<String>.from(data['savedTrainingCenters'] ?? []);
         setState(() {
           _isSaved = saved.contains(widget.center.id);
@@ -51,7 +51,7 @@ class _TrainingCenterDetailsScreenState
   }
 
   Future<void> _toggleSaved() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -163,8 +163,8 @@ class _TrainingCenterDetailsScreenState
     return Directionality(
       textDirection: AppStrings.direction(context),
       child: DefaultTabController(
-        length: 4,
-        initialIndex: widget.initialTabIndex,
+        length: 3,
+        initialIndex: widget.initialTabIndex.clamp(0, 2),
         child: Scaffold(
           backgroundColor: AppColors.scaffoldBg(context),
           body: NestedScrollView(
@@ -329,11 +329,10 @@ class _TrainingCenterDetailsScreenState
                         fontWeight: FontWeight.normal,
                         fontSize: 13.5,
                       ),
-                      tabs: [
-                        Tab(text: 'المنشورات (${center.posts.length})'),
-                        Tab(text: 'الدورات والأقسام (${center.colleges.length})'),
-                        const Tab(text: 'عن المركز'),
-                        Tab(text: 'معرض الصور (${center.gallery.length})'),
+                      tabs: const [
+                        Tab(text: 'المنشورات'),
+                        Tab(text: 'الدورات والأقسام'),
+                        Tab(text: 'عن المركز'),
                       ],
                     ),
                   ),
@@ -345,7 +344,6 @@ class _TrainingCenterDetailsScreenState
                 _buildPostsTab(context),
                 _buildCoursesTab(context),
                 _buildAboutTab(context),
-                _buildGalleryTab(context),
               ],
             ),
           ),
@@ -390,8 +388,10 @@ class _TrainingCenterDetailsScreenState
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: center.colleges.length,
-      itemBuilder: (context, index) =>
-          CollegeCard(college: center.colleges[index]),
+      itemBuilder: (context, index) => CollegeCard(
+        college: center.colleges[index],
+        showGpa: false,
+      ),
     );
   }
 
@@ -510,33 +510,5 @@ class _TrainingCenterDetailsScreenState
       ),
     );
   }
-
-  Widget _buildGalleryTab(BuildContext context) {
-    if (center.gallery.isEmpty) {
-      return Center(
-        child: Text(
-          AppStrings.isAr(context)
-              ? 'لا توجد صور حالياً'
-              : 'No photos available currently',
-          style: TextStyle(color: AppColors.textMuted(context)),
-        ),
-      );
-    }
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: center.gallery.length,
-      itemBuilder: (context, index) => CustomCachedImage(
-        imageUrl: center.gallery[index],
-        fit: BoxFit.cover,
-        borderRadius: BorderRadius.circular(8),
-        placeholderIcon: Icons.image_rounded,
-        iconSize: 24,
-      ),
-    );
-  }
 }
+

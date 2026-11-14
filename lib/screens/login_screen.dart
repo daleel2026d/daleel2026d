@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/app_localizations.dart';
 import '../main.dart';
@@ -84,15 +84,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final error = await _authService.signInWithGoogle();
 
-    if (mounted) {
-      setState(() {
-        _isGoogleLoading = false;
-        _errorMessage = error;
-      });
+    if (!mounted) return;
 
-      if (error == null && FirebaseAuth.instance.currentUser != null) {
-        _handleSuccessNavigation();
-      }
+    setState(() {
+      _isGoogleLoading = false;
+      _errorMessage = error;
+    });
+
+    if (error == null && _authService.currentUser != null) {
+      _handleSuccessNavigation();
     }
   }
 
@@ -381,84 +381,87 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // فاصل "أو" / "OR"
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: AppColors.border(context),
-                          thickness: 1,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Text(
-                          AppStrings.orDivider(context),
-                          style: TextStyle(
-                            color: AppColors.textMuted(context),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                  if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) ...[
+                    // فاصل "أو" / "OR"
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Divider(
+                            color: AppColors.border(context),
+                            thickness: 1,
                           ),
                         ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          color: AppColors.border(context),
-                          thickness: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // زر Google Sign-In / Google Sign-Up
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton(
-                      onPressed: isAnyLoading ? null : _submitGoogle,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: AppColors.surfaceCard(context),
-                        side: BorderSide(
-                          color: AppColors.border(context),
-                          width: 1.2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isGoogleLoading
-                          ? SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                color: AppColors.isDark(context)
-                                    ? const Color(0xFF38BDF8)
-                                    : AppColors.primaryDark,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _googleLogo(),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _isLogin
-                                      ? AppStrings.signInWithGoogle(context)
-                                      : AppStrings.signUpWithGoogle(context),
-                                  style: TextStyle(
-                                    color: AppColors.textMain(context),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: Text(
+                            AppStrings.orDivider(context),
+                            style: TextStyle(
+                              color: AppColors.textMuted(context),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(
+                            color: AppColors.border(context),
+                            thickness: 1,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // زر Google Sign-In / Google Sign-Up
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton(
+                        onPressed: isAnyLoading ? null : _submitGoogle,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AppColors.surfaceCard(context),
+                          side: BorderSide(
+                            color: AppColors.border(context),
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isGoogleLoading
+                            ? SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.isDark(context)
+                                      ? const Color(0xFF38BDF8)
+                                      : AppColors.primaryDark,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _googleLogo(),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _isLogin
+                                        ? AppStrings.signInWithGoogle(context)
+                                        : AppStrings.signUpWithGoogle(context),
+                                    style: TextStyle(
+                                      color: AppColors.textMain(context),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ] else
+                    const SizedBox(height: 12),
 
                   TextButton(
                     onPressed: isAnyLoading

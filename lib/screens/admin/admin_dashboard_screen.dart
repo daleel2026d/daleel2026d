@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../main.dart';
 import '../../services/auth_service.dart';
 import 'admin_universities_screen.dart';
@@ -23,13 +22,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+    return StreamBuilder<AppUser?>(
+      initialData: _authService.currentUser,
+      stream: _authService.authStateChanges,
       builder: (context, snapshot) {
         final user = snapshot.data;
         final bool hasAdminAccess = AuthService.isAdmin(user);
 
-        // إذا كان المستخدم مسجل دخول وهو المدير المصرح له -> عرض لوحة التحكم
+        // إذا كان المستخدم مسجل دخول وهو المدير المصرح له -> عرض لوحة التحكم الكاملة
         if (hasAdminAccess) {
           return _buildDashboardContent(context, user!);
         }
@@ -41,7 +41,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   // ===== واجهة لوحة التحكم الكاملة للمدير =====
-  Widget _buildDashboardContent(BuildContext context, User adminUser) {
+  Widget _buildDashboardContent(BuildContext context, AppUser adminUser) {
     return Scaffold(
       backgroundColor: AppColors.background(context),
       appBar: AppBar(
@@ -210,7 +210,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   // ===== بوابة التحقق وتسجيل دخول المدير =====
-  Widget _buildAdminLoginGate(BuildContext context, User? currentUser) {
+  Widget _buildAdminLoginGate(BuildContext context, AppUser? currentUser) {
     return Scaffold(
       backgroundColor: AppColors.background(context),
       appBar: AppBar(
@@ -435,11 +435,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
 
     try {
-      final error = await _authService.signInWithGoogle();
+      String? error = await _authService.signInWithGoogle();
+      if (error == 'WEB_PROMPT_REQUIRED') {
+        final typedEmail = _emailController.text.trim().isNotEmpty
+            ? _emailController.text.trim()
+            : 'daleel2026d@gmail.com';
+        error = await _authService.signInWithGoogleEmail(email: typedEmail);
+      }
       if (error != null) {
         setState(() => _errorMessage = error);
       } else {
-        final user = FirebaseAuth.instance.currentUser;
+        final user = _authService.currentUser;
         if (!AuthService.isAdmin(user)) {
           setState(() {
             _errorMessage =
@@ -473,7 +479,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (error != null) {
         setState(() => _errorMessage = error);
       } else {
-        final user = FirebaseAuth.instance.currentUser;
+        final user = _authService.currentUser;
         if (!AuthService.isAdmin(user)) {
           setState(() {
             _errorMessage =

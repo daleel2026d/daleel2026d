@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../main.dart';
 import '../models/university_model.dart';
 import '../models/scholarship_model.dart';
@@ -10,11 +8,14 @@ import '../models/opportunity_model.dart';
 import '../models/training_center_model.dart';
 import '../models/post_model.dart';
 import '../services/app_localizations.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
+import '../services/supabase_service.dart';
 import '../widgets/custom_cached_image.dart';
 import 'universities_screen.dart';
 import 'scholarships_opportunities_screen.dart';
+import 'immigration_screen.dart';
 import 'profile_screen.dart';
 import 'university_details_screen.dart';
 import 'scholarship_details_screen.dart';
@@ -34,6 +35,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  final Set<int> _loadedTabs = {0};
   DateTime? _lastBackPressTime;
 
   @override
@@ -96,18 +98,34 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: AppColors.scaffoldBg(context),
           body: IndexedStack(
             index: _currentIndex,
-            children: const [
-              _HomeContent(),
-              UniversitiesScreen(),
-              ScholarshipsOpportunitiesScreen(),
-              ProfileScreen(),
+            children: [
+              _HomeContent(
+                onSelectTab: (index) => setState(() {
+                  _loadedTabs.add(index);
+                  _currentIndex = index;
+                }),
+              ),
+              _loadedTabs.contains(1)
+                  ? const UniversitiesScreen()
+                  : const SizedBox.shrink(),
+              _loadedTabs.contains(2)
+                  ? const ScholarshipsOpportunitiesScreen()
+                  : const SizedBox.shrink(),
+              _loadedTabs.contains(3)
+                  ? const ImmigrationScreen()
+                  : const SizedBox.shrink(),
+              _loadedTabs.contains(4)
+                  ? const ProfileScreen()
+                  : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: NavigationBar(
             height: 62,
             selectedIndex: _currentIndex,
-            onDestinationSelected: (index) =>
-                setState(() => _currentIndex = index),
+            onDestinationSelected: (index) => setState(() {
+              _loadedTabs.add(index);
+              _currentIndex = index;
+            }),
             destinations: [
               NavigationDestination(
                 icon: const Icon(Icons.home_outlined),
@@ -125,6 +143,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: AppStrings.navScholarships(context),
               ),
               NavigationDestination(
+                icon: const Icon(Icons.flight_takeoff_outlined),
+                selectedIcon: const Icon(Icons.flight_takeoff_rounded),
+                label: AppStrings.navImmigration(context),
+              ),
+              NavigationDestination(
                 icon: const Icon(Icons.person_outline),
                 selectedIcon: const Icon(Icons.person),
                 label: AppStrings.navProfile(context),
@@ -138,7 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeContent extends StatefulWidget {
-  const _HomeContent();
+  final ValueChanged<int>? onSelectTab;
+
+  const _HomeContent({this.onSelectTab});
 
   @override
   State<_HomeContent> createState() => _HomeContentState();
@@ -152,6 +177,7 @@ class _HomeContentState extends State<_HomeContent> {
   String _selectedType = 'all';
   String _selectedCity = 'كافة المحافظات';
   bool _isLoading = false;
+  final Set<String> _hiddenPostKeys = <String>{};
 
   static const List<String> _iraqGovernorates = [
     'كافة المحافظات',
@@ -188,6 +214,23 @@ class _HomeContentState extends State<_HomeContent> {
   @override
   void initState() {
     super.initState();
+    // تحميل فوري متزامن من الذاكرة المحلية (0 ثانية انتظار مثل فيسبوك وإنستغرام وتيك توك)
+    final cachedUnis = _firestoreService.cachedUniversities;
+    final cachedSchs = _firestoreService.cachedScholarships;
+    final cachedOpps = _firestoreService.cachedOpportunities;
+    final cachedCenters = _firestoreService.cachedTrainingCenters;
+    if ((cachedUnis != null && cachedUnis.isNotEmpty) ||
+        (cachedSchs != null && cachedSchs.isNotEmpty) ||
+        (cachedOpps != null && cachedOpps.isNotEmpty) ||
+        (cachedCenters != null && cachedCenters.isNotEmpty)) {
+      _applyFeedData(
+        allUniversities: cachedUnis ?? const [],
+        allScholarships: cachedSchs ?? const [],
+        allOpportunities: cachedOpps ?? const [],
+        allTrainingCenters: cachedCenters ?? const [],
+        notifyState: false,
+      );
+    }
     _loadDefaultData();
     _listenToLikedPosts();
     _listenToDataChanges();
@@ -209,11 +252,11 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   void _listenToLikedPosts() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     _firestoreService.getUserData(uid).listen((doc) {
       if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data()!;
         setState(() {
           _likedPostKeys = List<String>.from(data['likedPosts'] ?? []);
         });
@@ -222,7 +265,7 @@ class _HomeContentState extends State<_HomeContent> {
   }
 
   Future<void> _toggleLikePost(String postKey) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -284,6 +327,107 @@ class _HomeContentState extends State<_HomeContent> {
     super.dispose();
   }
 
+  void _applyFeedData({
+    required List<University> allUniversities,
+    required List<Scholarship> allScholarships,
+    required List<Opportunity> allOpportunities,
+    required List<TrainingCenter> allTrainingCenters,
+    bool notifyState = true,
+  }) {
+    final List<Map<String, dynamic>> extracted = [];
+
+    // 1. منشورات الجامعات والكليات
+    for (var uni in allUniversities) {
+      for (var post in uni.posts) {
+        extracted.add({
+          'post': post,
+          'type': 'university',
+          'name': uni.name,
+          'logoUrl': uni.logoUrl,
+          'location': uni.city.isNotEmpty ? uni.city : 'العراق',
+          'badgeText': 'جامعة / كلية',
+          'badgeColor': const Color(0xFF0284C7),
+          'placeholderIcon': Icons.account_balance_rounded,
+          'entity': uni,
+        });
+      }
+    }
+
+    // 2. منشورات المنح الدراسية
+    for (var sch in allScholarships) {
+      for (var post in sch.posts) {
+        extracted.add({
+          'post': post,
+          'type': 'scholarship',
+          'name': sch.name,
+          'logoUrl': sch.imageUrl,
+          'location': sch.country.isNotEmpty ? sch.country : 'منحة دراسية',
+          'badgeText': 'منحة دراسية',
+          'badgeColor': const Color(0xFFEA580C),
+          'placeholderIcon': Icons.school_rounded,
+          'entity': sch,
+        });
+      }
+    }
+
+    // 3. منشورات الفرص والفعاليات
+    for (var opp in allOpportunities) {
+      for (var post in opp.posts) {
+        extracted.add({
+          'post': post,
+          'type': 'opportunity',
+          'name': opp.title,
+          'logoUrl': opp.imageUrl,
+          'location': opp.location.isNotEmpty
+              ? opp.location
+              : (opp.attendance.isNotEmpty ? opp.attendance : 'أونلاين'),
+          'badgeText': 'فرصة وفعالية',
+          'badgeColor': const Color(0xFF10B981),
+          'placeholderIcon': Icons.event_rounded,
+          'entity': opp,
+        });
+      }
+    }
+
+    // 4. منشورات مراكز التدريب
+    for (var center in allTrainingCenters) {
+      for (var post in center.posts) {
+        extracted.add({
+          'post': post,
+          'type': 'training_center',
+          'name': center.name,
+          'logoUrl': center.imageUrl,
+          'location':
+              center.location.isNotEmpty ? center.location : 'مركز تدريب',
+          'badgeText': 'مركز تدريب',
+          'badgeColor': const Color(0xFF7C3AED),
+          'placeholderIcon': Icons.apartment_rounded,
+          'entity': center,
+        });
+      }
+    }
+
+    extracted.sort((a, b) {
+      final aDate = _parsePostDate((a['post'] as Post).date);
+      final bDate = _parsePostDate((b['post'] as Post).date);
+      return bDate.compareTo(aDate);
+    });
+
+    if (notifyState) {
+      if (mounted) {
+        setState(() {
+          _defaultUniversities = allUniversities.take(12).toList();
+          _recentPosts = extracted.take(30).toList();
+          _isPostsLoading = false;
+        });
+      }
+    } else {
+      _defaultUniversities = allUniversities.take(12).toList();
+      _recentPosts = extracted.take(30).toList();
+      _isPostsLoading = false;
+    }
+  }
+
   Future<void> _loadDefaultData() async {
     try {
       final results = await Future.wait([
@@ -298,102 +442,19 @@ class _HomeContentState extends State<_HomeContent> {
       final allOpportunities = results[2] as List<Opportunity>;
       final allTrainingCenters = results[3] as List<TrainingCenter>;
 
-      final List<Map<String, dynamic>> extracted = [];
-
-      // 1. منشورات الجامعات والكليات
-      for (var uni in allUniversities) {
-        for (var post in uni.posts) {
-          extracted.add({
-            'post': post,
-            'type': 'university',
-            'name': uni.name,
-            'logoUrl': uni.logoUrl,
-            'location': uni.city.isNotEmpty ? uni.city : 'العراق',
-            'badgeText': 'جامعة / كلية',
-            'badgeColor': const Color(0xFF0284C7),
-            'placeholderIcon': Icons.account_balance_rounded,
-            'entity': uni,
-          });
-        }
-      }
-
-      // 2. منشورات المنح الدراسية
-      for (var sch in allScholarships) {
-        for (var post in sch.posts) {
-          extracted.add({
-            'post': post,
-            'type': 'scholarship',
-            'name': sch.name,
-            'logoUrl': sch.imageUrl,
-            'location': sch.country.isNotEmpty ? sch.country : 'منحة دراسية',
-            'badgeText': 'منحة دراسية',
-            'badgeColor': const Color(0xFFEA580C),
-            'placeholderIcon': Icons.school_rounded,
-            'entity': sch,
-          });
-        }
-      }
-
-      // 3. منشورات الفرص والفعاليات
-      for (var opp in allOpportunities) {
-        for (var post in opp.posts) {
-          extracted.add({
-            'post': post,
-            'type': 'opportunity',
-            'name': opp.title,
-            'logoUrl': opp.imageUrl,
-            'location': opp.location.isNotEmpty
-                ? opp.location
-                : (opp.attendance.isNotEmpty ? opp.attendance : 'أونلاين'),
-            'badgeText': 'فرصة وفعالية',
-            'badgeColor': const Color(0xFF10B981),
-            'placeholderIcon': Icons.event_rounded,
-            'entity': opp,
-          });
-        }
-      }
-
-      // 4. منشورات مراكز التدريب
-      for (var center in allTrainingCenters) {
-        for (var post in center.posts) {
-          extracted.add({
-            'post': post,
-            'type': 'training_center',
-            'name': center.name,
-            'logoUrl': center.imageUrl,
-            'location':
-                center.location.isNotEmpty ? center.location : 'مركز تدريب',
-            'badgeText': 'مركز تدريب',
-            'badgeColor': const Color(0xFF7C3AED),
-            'placeholderIcon': Icons.apartment_rounded,
-            'entity': center,
-          });
-        }
-      }
-
-      extracted.sort((a, b) {
-        final aDate = _parsePostDate((a['post'] as Post).date);
-        final bDate = _parsePostDate((b['post'] as Post).date);
-        return bDate.compareTo(aDate);
-      });
-
-      if (mounted) {
-        setState(() {
-          _defaultUniversities = allUniversities.take(12).toList();
-          _recentPosts = extracted.take(30).toList();
-          _isPostsLoading = false;
-        });
-      }
+      _applyFeedData(
+        allUniversities: allUniversities,
+        allScholarships: allScholarships,
+        allOpportunities: allOpportunities,
+        allTrainingCenters: allTrainingCenters,
+        notifyState: true,
+      );
 
       // فحص وتوليد إشعارات ذكية
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final uid = AuthService().currentUser?.uid;
       if (uid != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
-        if (doc.exists) {
-          final data = doc.data() ?? {};
+        final data = await SupabaseService().getUserDataMap(uid);
+        if (data != null) {
           final favs = List<String>.from(data['favorites'] ?? []);
           NotificationService()
               .notifyFavoriteUniversityUpdates(allUniversities, favs);
@@ -443,14 +504,14 @@ class _HomeContentState extends State<_HomeContent> {
     setState(() => _isLoading = true);
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final uid = AuthService().currentUser?.uid;
       if (uid != null) {
         try {
-          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          await SupabaseService().updateUserFields(uid, {
             'average': average,
             'track': _selectedTrack,
             'city': _selectedCity,
-          }, SetOptions(merge: true));
+          });
         } catch (_) {}
       }
 
@@ -977,6 +1038,9 @@ class _HomeContentState extends State<_HomeContent> {
     final dynamic entity = item['entity'];
 
     final postKey = '${name}_${post.title}_${post.date}';
+    if (_hiddenPostKeys.contains(postKey)) {
+      return const SizedBox.shrink();
+    }
     final isLiked = _likedPostKeys.contains(postKey);
 
     return Container(
@@ -1088,6 +1152,79 @@ class _HomeContentState extends State<_HomeContent> {
                           color: badgeColor,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 4),
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 20,
+                        color: AppColors.textMuted(context),
+                      ),
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      color: AppColors.surfaceCard(context),
+                      onSelected: (action) {
+                        setState(() {
+                          _hiddenPostKeys.add(postKey);
+                        });
+                        _showSnackBar(
+                          action == 'report'
+                              ? (AppStrings.isAr(context)
+                                  ? 'تم إرسال البلاغ للمراجعة وإخفاء المنشور'
+                                  : 'Post reported for review and hidden')
+                              : (AppStrings.isAr(context)
+                                  ? 'تم إخفاء المنشور من موجزك'
+                                  : 'Post hidden from your feed'),
+                        );
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'hide',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.visibility_off_outlined,
+                                size: 18,
+                                color: AppColors.textMuted(context),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                AppStrings.isAr(context)
+                                    ? 'إخفاء هذا المنشور'
+                                    : 'Hide Post',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textMain(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.flag_outlined,
+                                size: 18,
+                                color: Colors.redAccent,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                AppStrings.isAr(context)
+                                    ? 'الإبلاغ عن محتوى غير ملائم'
+                                    : 'Report Content',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1217,38 +1354,42 @@ class _HomeContentState extends State<_HomeContent> {
       child: RefreshIndicator(
         onRefresh: _loadDefaultData,
         color: AppColors.primaryDark,
-        child: SingleChildScrollView(
+        child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/home_header.jpg'),
-                        fit: BoxFit.cover,
+                  Stack(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: 108,
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage(
+                              'assets/images/daleel_hero_banner.jpg',
+                            ),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.5),
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.3),
-                        ],
+                      Container(
+                        width: double.infinity,
+                        height: 108,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.5),
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.35),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1404,6 +1545,10 @@ class _HomeContentState extends State<_HomeContent> {
                   decoration: InputDecoration(
                     hintText: '85.6',
                     hintStyle: TextStyle(color: AppColors.textMuted(context)),
+                    prefixIcon: const Icon(
+                      Icons.percent_rounded,
+                      size: 18,
+                    ),
                     filled: true,
                     fillColor: AppColors.inputFill(context),
                     contentPadding: const EdgeInsets.symmetric(
@@ -1420,7 +1565,57 @@ class _HomeContentState extends State<_HomeContent> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      Text(
+                        AppStrings.isAr(context)
+                            ? 'اختيار سريع للمعدل:'
+                            : 'Quick GPA:',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted(context),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      for (final preset in const ['65.0', '75.0', '85.0', '95.0'])
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6, right: 2),
+                          child: ActionChip(
+                            label: Text(
+                              '$preset%',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: _averageController.text.trim() == preset
+                                    ? Colors.white
+                                    : AppColors.textMain(context),
+                              ),
+                            ),
+                            backgroundColor:
+                                _averageController.text.trim() == preset
+                                    ? AppColors.primaryDark
+                                    : AppColors.surfaceCard(context),
+                            side: BorderSide(
+                              color: _averageController.text.trim() == preset
+                                  ? AppColors.primaryDark
+                                  : AppColors.border(context),
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              setState(() {
+                                _averageController.text = preset;
+                              });
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // عنوان اختر فرع الدراسة ومقابله زر المحافظة
                 Row(
@@ -1542,6 +1737,133 @@ class _HomeContentState extends State<_HomeContent> {
                   currentTrack: _selectedTrack,
                 ),
 
+                const SizedBox(height: 20),
+
+                // بطاقة بوابة الهجرة العالمية ومطابقة المعدل للدول
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      if (widget.onSelectTab != null) {
+                        widget.onSelectTab!(3);
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ImmigrationScreen(),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [
+                            Color(0xFF0F2942),
+                            Color(0xFF1E3A8A),
+                            Color(0xFF0284C7),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0284C7).withValues(alpha: 0.22),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.flight_takeoff_rounded,
+                              color: Colors.amberAccent,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        AppStrings.isAr(context)
+                                            ? 'ميزة تفاعلية حصرية'
+                                            : 'Interactive Guide',
+                                        style: const TextStyle(
+                                          color: Colors.amberAccent,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  AppStrings.isAr(context)
+                                      ? 'بوابة الهجرة العالمية والمعدل المطلوب للدول'
+                                      : 'Global Immigration & GPA Matcher',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  AppStrings.isAr(context)
+                                      ? 'قارن معدلك مع متطلبات الهجرة والدراسة في 14 دولة عالمية مع خطوات التقديم الرسمية'
+                                      : 'Match your GPA with study & skilled migration pathways across 14 countries',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    fontSize: 11.5,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            AppStrings.isAr(context)
+                                ? Icons.arrow_back_ios_new_rounded
+                                : Icons.arrow_forward_ios_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
 
                 if (_defaultUniversities.isNotEmpty) ...[
@@ -1656,18 +1978,6 @@ class _HomeContentState extends State<_HomeContent> {
                       color: AppColors.textMain(context),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _recentPosts.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = _recentPosts[index];
-                      return _postCard(item);
-                    },
-                  ),
                 ] else ...[
                   const SizedBox(height: 24),
                   Center(
@@ -1685,7 +1995,21 @@ class _HomeContentState extends State<_HomeContent> {
         ],
       ),
     ),
-  ),
+    if (!_isPostsLoading && _recentPosts.isNotEmpty)
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        sliver: SliverList.separated(
+          itemCount: _recentPosts.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final item = _recentPosts[index];
+            return _postCard(item);
+          },
+        ),
+      ),
+  ],
+),
+),
 );
 }
 }

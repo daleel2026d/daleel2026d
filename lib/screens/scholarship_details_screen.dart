@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/scholarship_model.dart';
 import '../services/app_localizations.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/custom_cached_image.dart';
-import '../widgets/college_card.dart';
 import '../widgets/post_card.dart';
 import '../main.dart';
 
@@ -36,11 +35,11 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
   }
 
   void _checkSaved() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
     _firestoreService.getUserData(uid).listen((doc) {
       if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data()!;
         final saved = List<String>.from(data['savedScholarships'] ?? []);
         setState(() {
           _isSaved = saved.contains(widget.scholarship.id);
@@ -50,7 +49,7 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
   }
 
   Future<void> _toggleSaved() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.uid;
     if (uid == null) {
       _showSnackBar(
         context,
@@ -127,8 +126,8 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
     return Directionality(
       textDirection: AppStrings.direction(context),
       child: DefaultTabController(
-        length: 4,
-        initialIndex: widget.initialTabIndex,
+        length: 2,
+        initialIndex: widget.initialTabIndex.clamp(0, 1),
         child: Scaffold(
           backgroundColor: AppColors.scaffoldBg(context),
           body: NestedScrollView(
@@ -307,13 +306,9 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
                         fontWeight: FontWeight.normal,
                         fontSize: 13.5,
                       ),
-                      tabs: [
-                        Tab(text: 'المنشورات (${scholarship.posts.length})'),
-                        Tab(
-                            text:
-                                'التخصصات المشمولة (${scholarship.colleges.length})'),
-                        const Tab(text: 'عن المنحة'),
-                        Tab(text: 'معرض الصور (${scholarship.gallery.length})'),
+                      tabs: const [
+                        Tab(text: 'المنشورات'),
+                        Tab(text: 'عن المنحة'),
                       ],
                     ),
                   ),
@@ -323,9 +318,7 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
             body: TabBarView(
               children: [
                 _buildPostsTab(context),
-                _buildCollegesTab(context),
                 _buildAboutTab(context),
-                _buildGalleryTab(context),
               ],
             ),
           ),
@@ -353,25 +346,6 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
         universityName: scholarship.name,
         universityLogo: scholarship.imageUrl,
       ),
-    );
-  }
-
-  Widget _buildCollegesTab(BuildContext context) {
-    if (scholarship.colleges.isEmpty) {
-      return Center(
-        child: Text(
-          AppStrings.isAr(context)
-              ? 'المنحة متاحة لكافة التخصصات أو لم يتم تحديد تخصصات بعد'
-              : 'Scholarship open for all majors or not specified yet',
-          style: TextStyle(color: AppColors.textMuted(context)),
-        ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: scholarship.colleges.length,
-      itemBuilder: (context, index) =>
-          CollegeCard(college: scholarship.colleges[index]),
     );
   }
 
@@ -466,35 +440,6 @@ class _ScholarshipDetailsScreenState extends State<ScholarshipDetailsScreen> {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGalleryTab(BuildContext context) {
-    if (scholarship.gallery.isEmpty) {
-      return Center(
-        child: Text(
-          AppStrings.isAr(context)
-              ? 'لا توجد صور حالياً'
-              : 'No photos available currently',
-          style: TextStyle(color: AppColors.textMuted(context)),
-        ),
-      );
-    }
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: scholarship.gallery.length,
-      itemBuilder: (context, index) => CustomCachedImage(
-        imageUrl: scholarship.gallery[index],
-        fit: BoxFit.cover,
-        borderRadius: BorderRadius.circular(8),
-        placeholderIcon: Icons.image_rounded,
-        iconSize: 24,
       ),
     );
   }

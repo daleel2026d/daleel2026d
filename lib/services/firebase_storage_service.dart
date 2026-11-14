@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'supabase_service.dart';
 
 class FirebaseStorageService {
   static final FirebaseStorageService _instance =
@@ -8,7 +9,6 @@ class FirebaseStorageService {
   factory FirebaseStorageService() => _instance;
   FirebaseStorageService._internal();
 
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
 
   /// اختيار صورة من المعرض أو الكاميرا
@@ -27,11 +27,11 @@ class FirebaseStorageService {
     }
   }
 
-  /// رفع صورة عام في مجلد مخصص في Firebase Storage
+  /// رفع صورة مباشر إلى Supabase Storage (حاوية images)
   Future<String> uploadImage({
-    required String section, // 'universities', 'scholarships', 'opportunities', 'training_centers'
+    required String section,
     required String itemId,
-    required String folder, // 'covers', 'logos', 'images', 'gallery', 'posts'
+    required String folder,
     required XFile file,
   }) async {
     final Uint8List bytes = await file.readAsBytes();
@@ -41,26 +41,25 @@ class FirebaseStorageService {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final path = '$section/$safeId/$folder/img_$timestamp.jpg';
 
-    final ref = _storage.ref().child(path);
-    final metadata = SettableMetadata(
-      contentType: 'image/jpeg',
-      customMetadata: {
-        'section': section,
-        'itemId': safeId,
-        'uploadedAt': DateTime.now().toIso8601String(),
-      },
+    final client = SupabaseService.client;
+    await client.storage.from('images').uploadBinary(
+      path,
+      bytes,
+      fileOptions: const FileOptions(
+        contentType: 'image/jpeg',
+        upsert: true,
+      ),
     );
-
-    final uploadTask = await ref.putData(bytes, metadata);
-    final downloadUrl = await uploadTask.ref.getDownloadURL();
-    return downloadUrl;
+    final publicUrl = client.storage.from('images').getPublicUrl(path);
+    debugPrint('✅ تم رفع الصورة بنجاح إلى Supabase Storage: $publicUrl');
+    return publicUrl;
   }
 
   /// رفع صورة لجامعة
   Future<String> uploadUniversityImage({
     required String universityId,
     required XFile file,
-    required String folder, // 'covers', 'logos', 'gallery', 'posts'
+    required String folder,
   }) =>
       uploadImage(
         section: 'universities',
@@ -73,7 +72,7 @@ class FirebaseStorageService {
   Future<String> uploadScholarshipImage({
     required String scholarshipId,
     required XFile file,
-    required String folder, // 'covers', 'logos', 'gallery', 'posts'
+    required String folder,
   }) =>
       uploadImage(
         section: 'scholarships',
@@ -86,7 +85,7 @@ class FirebaseStorageService {
   Future<String> uploadOpportunityImage({
     required String opportunityId,
     required XFile file,
-    required String folder, // 'covers', 'logos', 'gallery', 'posts'
+    required String folder,
   }) =>
       uploadImage(
         section: 'opportunities',
@@ -99,7 +98,7 @@ class FirebaseStorageService {
   Future<String> uploadTrainingCenterImage({
     required String centerId,
     required XFile file,
-    required String folder, // 'covers', 'logos', 'gallery', 'posts'
+    required String folder,
   }) =>
       uploadImage(
         section: 'training_centers',
@@ -107,4 +106,24 @@ class FirebaseStorageService {
         folder: folder,
         file: file,
       );
+
+  /// تحويل رسائل خطأ التخزين إلى رسائل واضحة ومفهومة للمستخدم
+  static String getFriendlyErrorMessage(dynamic e) {
+    final str = e.toString();
+    if (str.contains('Bucket not found') || str.contains('NoSuchBucket')) {
+      return 'حاوية التخزين "images" غير موجودة في Supabase Storage. يرجى الدخول إلى Supabase > Storage وإنشاء New bucket باسم images وتفعيل خيار Public bucket.';
+    }
+    if (str.contains('row-level security') ||
+        str.contains('policy') ||
+        str.contains('security policy')) {
+      return 'تم رفض إذن الرفع في Supabase Storage. يرجى تفعيل صلاحية الرفع (Upload Policy) لحاوية images في لوحة Supabase Storage.';
+    }
+    if (str.contains('unauthorized') || str.contains('permission-denied')) {
+      return 'تم رفض إذن الرفع. يرجى التحقق من أذونات التخزين في لوحة التحكم.';
+    }
+    if (str.contains('network') || str.contains('unavailable')) {
+      return 'تعذر الاتصال بخادم التخزين، يرجى التحقق من اتصال الإنترنت.';
+    }
+    return 'فشل رفع الصورة: $e';
+  }
 }

@@ -38,8 +38,8 @@ class CustomCachedImage extends StatelessWidget {
       fit: fit,
       // Optimize memory usage by caching decoded image at sensible dimensions
       memCacheWidth: width != null && width != double.infinity ? (width! * 2).toInt() : 800,
-      fadeInDuration: const Duration(milliseconds: 200),
-      fadeOutDuration: const Duration(milliseconds: 150),
+      fadeInDuration: const Duration(milliseconds: 80),
+      fadeOutDuration: Duration.zero,
       placeholder: (context, url) => _buildPlaceholder(context, isLoading: true),
       errorWidget: (context, url, error) => _buildPlaceholder(context),
     );

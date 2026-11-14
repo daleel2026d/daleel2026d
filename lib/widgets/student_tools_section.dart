@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../services/app_localizations.dart';
 import '../screens/tools/admission_chance_screen.dart';
-import '../screens/tools/university_compare_screen.dart';
 import '../screens/tools/admission_checklist_screen.dart';
 import '../screens/tools/tuition_calculator_screen.dart';
 import '../screens/tools/student_wishlist_screen.dart';
@@ -38,21 +37,6 @@ class StudentToolsSection extends StatelessWidget {
                 initialGpa: currentAverage,
                 initialTrack: currentTrack,
               ),
-            ),
-          );
-        },
-      ),
-      _ToolItem(
-        title: AppStrings.toolCompare(context),
-        subtitle: AppStrings.toolCompareDesc(context),
-        icon: Icons.compare_arrows_rounded,
-        color: const Color(0xFF8B5CF6),
-        badgeText: isAr ? 'مقارنة حية' : 'Live',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const UniversityCompareScreen(),
             ),
           );
         },
@@ -139,7 +123,7 @@ class StudentToolsSection extends StatelessWidget {
                     ),
                     Text(
                       isAr
-                          ? 'أدوات تفاعلية ذكية للقبول والمقارنة والتخطيط'
+                          ? 'أدوات تفاعلية ذكية للقبول والتخطيط الجامعي'
                           : 'Interactive native tools for admission & planning',
                       style: TextStyle(
                         fontSize: 11.5,

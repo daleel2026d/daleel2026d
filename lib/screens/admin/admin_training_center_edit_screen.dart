@@ -36,11 +36,11 @@ class _AdminTrainingCenterEditScreenState
   late TextEditingController _instaCtrl;
   late TextEditingController _imgCtrl;
   late TextEditingController _coverCtrl;
+  late TextEditingController _managerEmailCtrl;
 
   // Image Uploading States
   bool _isUploadingCover = false;
   bool _isUploadingLogo = false;
-  bool _isUploadingGallery = false;
   bool _showManualUrlInputs = false;
 
   // State for Tab 2 (Courses / Colleges)
@@ -49,9 +49,8 @@ class _AdminTrainingCenterEditScreenState
   // State for Tab 3 (Posts)
   List<Post> _posts = [];
 
-  // State for Tab 4 (Gallery)
+  // Gallery
   List<String> _gallery = [];
-  final TextEditingController _galleryImageCtrl = TextEditingController();
 
   bool _isSaving = false;
 
@@ -72,6 +71,7 @@ class _AdminTrainingCenterEditScreenState
     _instaCtrl = TextEditingController(text: c?.instagram ?? '');
     _imgCtrl = TextEditingController(text: c?.imageUrl ?? '');
     _coverCtrl = TextEditingController(text: c?.coverImageUrl ?? '');
+    _managerEmailCtrl = TextEditingController(text: c?.managerEmail ?? '');
 
     if (c != null) {
       _colleges = List<College>.from(c.colleges);
@@ -98,7 +98,7 @@ class _AdminTrainingCenterEditScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم رفع صورة غلاف المركز بنجاح إلى Firebase Storage'),
+            content: Text('تم رفع صورة غلاف المركز بنجاح'),
             backgroundColor: Colors.green,
           ),
         );
@@ -108,8 +108,9 @@ class _AdminTrainingCenterEditScreenState
         setState(() => _isUploadingCover = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الصورة إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -134,7 +135,7 @@ class _AdminTrainingCenterEditScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم رفع شعار المركز بنجاح إلى Firebase Storage'),
+            content: Text('تم رفع شعار المركز بنجاح'),
             backgroundColor: Colors.green,
           ),
         );
@@ -144,44 +145,9 @@ class _AdminTrainingCenterEditScreenState
         setState(() => _isUploadingLogo = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل رفع الشعار إلى Firebase: $e'),
+            content: Text(FirebaseStorageService.getFriendlyErrorMessage(e)),
             backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _pickAndUploadGalleryImage() async {
-    final file = await _storageService.pickImage();
-    if (file == null) return;
-
-    setState(() => _isUploadingGallery = true);
-    try {
-      final url = await _storageService.uploadTrainingCenterImage(
-        centerId: _sessionCenterId,
-        file: file,
-        folder: 'gallery',
-      );
-      setState(() {
-        _gallery.add(url);
-        _isUploadingGallery = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم رفع الصورة وإضافتها للمعرض بنجاح عبر Firebase Storage'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isUploadingGallery = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('فشل رفع الصورة إلى Firebase: $e'),
-            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -201,7 +167,7 @@ class _AdminTrainingCenterEditScreenState
     _instaCtrl.dispose();
     _imgCtrl.dispose();
     _coverCtrl.dispose();
-    _galleryImageCtrl.dispose();
+    _managerEmailCtrl.dispose();
     super.dispose();
   }
 
@@ -214,7 +180,7 @@ class _AdminTrainingCenterEditScreenState
           backgroundColor: Colors.redAccent,
         ),
       );
-      _tabController.animateTo(0);
+      _tabController.animateTo(3);
       return;
     }
 
@@ -236,6 +202,8 @@ class _AdminTrainingCenterEditScreenState
         'colleges': _colleges.map((c) => c.toMap()).toList(),
         'posts': _posts.map((p) => p.toMap()).toList(),
         'gallery': _gallery,
+        'managerEmail': _managerEmailCtrl.text.trim().toLowerCase(),
+        'adminEmail': _managerEmailCtrl.text.trim().toLowerCase(),
       };
 
       if (widget.center != null) {
@@ -329,20 +297,20 @@ class _AdminTrainingCenterEditScreenState
                 const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
             tabs: [
               const Tab(
+                icon: Icon(Icons.newspaper_rounded, size: 20),
+                text: 'المنشورات',
+              ),
+              const Tab(
+                icon: Icon(Icons.school_rounded, size: 20),
+                text: 'الدورات والأقسام',
+              ),
+              const Tab(
+                icon: Icon(Icons.apartment_rounded, size: 20),
+                text: 'شعار المركز',
+              ),
+              const Tab(
                 icon: Icon(Icons.info_outline_rounded, size: 20),
                 text: 'معلومات المركز',
-              ),
-              Tab(
-                icon: const Icon(Icons.school_rounded, size: 20),
-                text: 'الدورات والأقسام (${_colleges.length})',
-              ),
-              Tab(
-                icon: const Icon(Icons.newspaper_rounded, size: 20),
-                text: 'المنشورات (${_posts.length})',
-              ),
-              Tab(
-                icon: const Icon(Icons.photo_library_rounded, size: 20),
-                text: 'معرض الصور (${_gallery.length})',
               ),
             ],
           ),
@@ -350,19 +318,18 @@ class _AdminTrainingCenterEditScreenState
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildGeneralInfoTab(),
-            _buildCollegesTab(),
             _buildPostsTab(),
-            _buildGalleryTab(),
+            _buildCollegesTab(),
+            _buildLogoTab(),
+            _buildGeneralInfoTab(),
           ],
         ),
       ),
     );
   }
 
-  // ================= TAB 1: معلومات المركز =================
+  // ================= TAB 4: معلومات المركز =================
   Widget _buildGeneralInfoTab() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -483,398 +450,21 @@ class _AdminTrainingCenterEditScreenState
                       border: OutlineInputBorder(),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // بطاقة صور وغلاف المركز (Firebase Storage)
-          Card(
-            color: AppColors.surfaceCard(context),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryDark.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(Icons.add_photo_alternate_rounded,
-                            color: AppColors.primaryDark, size: 22),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'صور المركز والواجهة',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            Text(
-                              'اختر الصور مباشرة من الهاتف ليتم رفعها وحفظها في Firebase Storage',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 1. صورة واجهة / غلاف المركز
-                  const Row(
-                    children: [
-                      Icon(Icons.panorama_rounded,
-                          size: 18, color: Color(0xFF0284C7)),
-                      SizedBox(width: 6),
-                      Text(
-                        'صورة واجهة / غلاف المركز (Cover Image)',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13.5),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  if (_coverCtrl.text.trim().isNotEmpty) ...[
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CustomCachedImage(
-                            imageUrl: _coverCtrl.text.trim(),
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholderIcon: Icons.apartment_rounded,
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _coverCtrl.text.contains('firebasestorage')
-                                      ? Icons.cloud_done_rounded
-                                      : Icons.image_rounded,
-                                  color: const Color(0xFF10B981),
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  _coverCtrl.text.contains('firebasestorage')
-                                      ? 'مخزنة في Firebase Storage'
-                                      : 'صورة الواجهة الحالية',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed:
-                                _isUploadingCover ? null : _pickAndUploadCover,
-                            icon: _isUploadingCover
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.photo_library_rounded,
-                                    size: 18),
-                            label: Text(
-                              _isUploadingCover
-                                  ? 'جارٍ رفع الصورة إلى Firebase...'
-                                  : 'تغيير صورة الواجهة من الجهاز',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12.5),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryDark,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton.filledTonal(
-                          tooltip: 'حذف صورة الواجهة',
-                          onPressed: () => setState(() => _coverCtrl.clear()),
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.redAccent),
-                          style: IconButton.styleFrom(
-                            backgroundColor:
-                                Colors.redAccent.withValues(alpha: 0.1),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 24, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E293B)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDark
-                              ? const Color(0xFF334155)
-                              : const Color(0xFFE2E8F0),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.cloud_upload_outlined,
-                            size: 42,
-                            color: AppColors.primaryDark,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'لم يتم تعيين صورة واجهة بعد',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'اضغط أدناه لاختيار صورة من هاتفك ليتم رفعها وحفظها في Firebase تلقائياً',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textMuted(context),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          ElevatedButton.icon(
-                            onPressed:
-                                _isUploadingCover ? null : _pickAndUploadCover,
-                            icon: _isUploadingCover
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.add_photo_alternate_rounded,
-                                    size: 18),
-                            label: Text(
-                              _isUploadingCover
-                                  ? 'جارٍ رفع الصورة إلى Firebase...'
-                                  : 'رفع صورة الواجهة من الجهاز إلى Firebase',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryDark,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-                  const Divider(),
                   const SizedBox(height: 16),
-
-                  // 2. شعار المركز
-                  const Row(
-                    children: [
-                      Icon(Icons.apartment_rounded,
-                          size: 18, color: Color(0xFF0284C7)),
-                      SizedBox(width: 6),
-                      Text(
-                        'شعار المركز (Center Logo)',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13.5),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF1E293B)
-                              : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: AppColors.primaryDark.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: _imgCtrl.text.trim().isNotEmpty
-                              ? CustomCachedImage(
-                                  imageUrl: _imgCtrl.text.trim(),
-                                  width: 68,
-                                  height: 68,
-                                  fit: BoxFit.cover,
-                                  placeholderIcon: Icons.apartment_rounded,
-                                )
-                              : const Icon(Icons.apartment_rounded,
-                                  size: 32, color: Color(0xFF94A3B8)),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed:
-                                  _isUploadingLogo ? null : _pickAndUploadLogo,
-                              icon: _isUploadingLogo
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Icon(Icons.photo_camera_back_outlined,
-                                      size: 18),
-                              label: Text(
-                                _isUploadingLogo
-                                    ? 'جارٍ رفع الشعار...'
-                                    : (_imgCtrl.text.trim().isNotEmpty
-                                        ? 'تغيير الشعار من الجهاز'
-                                        : 'رفع الشعار إلى Firebase'),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 12.5),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0284C7),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            ),
-                            if (_imgCtrl.text.trim().isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: TextButton.icon(
-                                  onPressed: () =>
-                                      setState(() => _imgCtrl.clear()),
-                                  icon: const Icon(Icons.delete_outline,
-                                      size: 16, color: Colors.redAccent),
-                                  label: const Text(
-                                    'إزالة الشعار',
-                                    style: TextStyle(
-                                        color: Colors.redAccent, fontSize: 12),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-                  // خيار متقدم لعرض أو تعديل الرابط يدوياً إن دعت الحاجة
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () => setState(
-                          () => _showManualUrlInputs = !_showManualUrlInputs),
-                      icon: Icon(
-                        _showManualUrlInputs
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: AppColors.textMuted(context),
-                      ),
-                      label: Text(
-                        _showManualUrlInputs
-                            ? 'إخفاء الروابط اليدوية'
-                            : 'خيارات متقدمة (عرض الرابط يدوياً)',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: AppColors.textMuted(context),
-                        ),
-                      ),
+                  TextField(
+                    controller: _managerEmailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'البريد الإلكتروني لمدير مركز التدريب (Manager Email)',
+                      hintText: 'مثال: manager@gmail.com',
+                      prefixIcon: Icon(Icons.manage_accounts_rounded,
+                          color: Color(0xFF2563EB)),
+                      helperText:
+                          'عند تسجيل هذا المدير الدخول للتطبيق، ستظهر له إدارة هذا المركز في صفحة حسابه للتحكم به وتعديل دوراته',
+                      helperMaxLines: 2,
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                  if (_showManualUrlInputs) ...[
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _coverCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'رابط صورة الغلاف المباشر',
-                        prefixIcon: Icon(Icons.link_rounded),
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _imgCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'رابط الشعار المباشر',
-                        prefixIcon: Icon(Icons.link_rounded),
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -893,10 +483,10 @@ class _AdminTrainingCenterEditScreenState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'الدورات والأقسام التدريبية (${_colleges.length})',
+              const Text(
+                'الدورات والأقسام التدريبية',
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               ElevatedButton.icon(
                 onPressed: () => _openCollegeDialog(),
@@ -1105,10 +695,10 @@ class _AdminTrainingCenterEditScreenState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'منشورات وإعلانات المركز (${_posts.length})',
+              const Text(
+                'منشورات وإعلانات المركز',
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               ElevatedButton.icon(
                 onPressed: () => _openPostDialog(),
@@ -1410,159 +1000,358 @@ class _AdminTrainingCenterEditScreenState
     );
   }
 
-  // ================= TAB 4: معرض الصور =================
-  Widget _buildGalleryTab() {
-    return Column(
-      children: [
-        Padding(
+  // ================= TAB 3: شعار المركز =================
+  Widget _buildLogoTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        color: AppColors.surfaceCard(context),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isUploadingGallery
-                      ? null
-                      : _pickAndUploadGalleryImage,
-                  icon: _isUploadingGallery
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.cloud_upload_outlined, size: 20),
-                  label: Text(
-                    _isUploadingGallery
-                        ? 'جارٍ رفع الصورة إلى Firebase Storage...'
-                        : 'رفع صورة جديدة للمعرض من الجهاز إلى Firebase',
-                    style: const TextStyle(
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryDark.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.add_photo_alternate_rounded,
+                        color: AppColors.primaryDark, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'صور المركز والواجهة',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Text(
+                          'اختر الصور مباشرة من الهاتف ليتم رفعها وحفظها سحابياً',
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 1. صورة واجهة / غلاف المركز
+              const Row(
+                children: [
+                  Icon(Icons.panorama_rounded,
+                      size: 18, color: Color(0xFF0284C7)),
+                  SizedBox(width: 6),
+                  Text(
+                    'صورة واجهة / غلاف المركز (Cover Image)',
+                    style: TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 13.5),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // عرض صورة الغلاف الحالية أو زر رفع صورة جديدة
+              if (_coverCtrl.text.trim().isNotEmpty) ...[
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: CustomCachedImage(
+                        imageUrl: _coverCtrl.text.trim(),
+                        width: double.infinity,
+                        height: 160,
+                        fit: BoxFit.cover,
+                        placeholderIcon: Icons.panorama_rounded,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: _isUploadingCover
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.edit_rounded,
+                                      color: Colors.white, size: 18),
+                              tooltip: 'تغيير صورة الغلاف من الجهاز',
+                              onPressed: _isUploadingCover
+                                  ? null
+                                  : _pickAndUploadCover,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  color: Colors.redAccent, size: 18),
+                              tooltip: 'إزالة الغلاف',
+                              onPressed: () =>
+                                  setState(() => _coverCtrl.clear()),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.primaryDark.withValues(alpha: 0.25),
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.cloud_upload_outlined,
+                        size: 42,
+                        color: AppColors.primaryDark,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'لم يتم تعيين صورة واجهة بعد',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'اضغط أدناه لاختيار صورة من هاتفك ليتم رفعها وحفظها في Firebase تلقائياً',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted(context),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
+                        onPressed:
+                            _isUploadingCover ? null : _pickAndUploadCover,
+                        icon: _isUploadingCover
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.add_photo_alternate_rounded,
+                                size: 18),
+                        label: Text(
+                          _isUploadingCover
+                              ? 'جارٍ رفع الصورة إلى Firebase...'
+                              : 'رفع صورة الواجهة من الجهاز إلى Firebase',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryDark,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // 2. شعار المركز
+              const Row(
+                children: [
+                  Icon(Icons.apartment_rounded,
+                      size: 18, color: Color(0xFF0284C7)),
+                  SizedBox(width: 6),
+                  Text(
+                    'شعار المركز (Center Logo)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13.5),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.primaryDark.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
+                      child: _imgCtrl.text.trim().isNotEmpty
+                          ? CustomCachedImage(
+                              imageUrl: _imgCtrl.text.trim(),
+                              width: 68,
+                              height: 68,
+                              fit: BoxFit.cover,
+                              placeholderIcon: Icons.apartment_rounded,
+                            )
+                          : const Icon(Icons.apartment_rounded,
+                              size: 32, color: Color(0xFF94A3B8)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed:
+                              _isUploadingLogo ? null : _pickAndUploadLogo,
+                          icon: _isUploadingLogo
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.photo_camera_back_outlined,
+                                  size: 18),
+                          label: Text(
+                            _isUploadingLogo
+                                ? 'جارٍ رفع الشعار...'
+                                : (_imgCtrl.text.trim().isNotEmpty
+                                    ? 'تغيير الشعار من الجهاز'
+                                    : 'رفع الشعار إلى Firebase'),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12.5),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0284C7),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                        if (_imgCtrl.text.trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  setState(() => _imgCtrl.clear()),
+                              icon: const Icon(Icons.delete_outline,
+                                  size: 16, color: Colors.redAccent),
+                              label: const Text(
+                                'إزالة الشعار',
+                                style: TextStyle(
+                                    color: Colors.redAccent, fontSize: 12),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+              // خيار متقدم لعرض أو تعديل الرابط يدوياً إن دعت الحاجة
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => setState(
+                      () => _showManualUrlInputs = !_showManualUrlInputs),
+                  icon: Icon(
+                    _showManualUrlInputs
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: AppColors.textMuted(context),
+                  ),
+                  label: Text(
+                    _showManualUrlInputs
+                        ? 'إخفاء الروابط اليدوية'
+                        : 'خيارات متقدمة (عرض الرابط يدوياً)',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textMuted(context),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Card(
-                color: AppColors.surfaceCard(context),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _galleryImageCtrl,
-                          decoration: const InputDecoration(
-                            hintText: 'أو أضف رابط صورة يدوياً (اختياري)...',
-                            prefixIcon: Icon(Icons.link_rounded),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                          ),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          final url = _galleryImageCtrl.text.trim();
-                          if (url.isNotEmpty) {
-                            setState(() {
-                              _gallery.add(url);
-                              _galleryImageCtrl.clear();
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.add_link, size: 18),
-                        label: const Text('إضافة رابط'),
-                      ),
-                    ],
+              if (_showManualUrlInputs) ...[
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _coverCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'رابط صورة الغلاف المباشر',
+                    prefixIcon: Icon(Icons.link_rounded),
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
-              ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _imgCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'رابط الشعار المباشر',
+                    prefixIcon: Icon(Icons.link_rounded),
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
             ],
           ),
         ),
-        Expanded(
-          child: _gallery.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.photo_library_outlined,
-                          size: 64, color: AppColors.textMuted(context)),
-                      const SizedBox(height: 12),
-                      Text(
-                        'لا توجد صور في المعرض بعد',
-                        style: TextStyle(
-                            fontSize: 15, color: AppColors.textMuted(context)),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'أضف صور قاعات ومختبرات المركز من الحقل أعلاه',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textMuted(context)),
-                      ),
-                    ],
-                  ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: _gallery.length,
-                  itemBuilder: (context, index) {
-                    final imgUrl = _gallery[index];
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CustomCachedImage(
-                            imageUrl: imgUrl,
-                            fit: BoxFit.cover,
-                            placeholderIcon: Icons.image_rounded,
-                          ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.delete_rounded,
-                                  color: Colors.redAccent, size: 18),
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(6),
-                              onPressed: () {
-                                setState(() => _gallery.removeAt(index));
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-        ),
-      ],
+      ),
     );
   }
 }

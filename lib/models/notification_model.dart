@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class AppNotification {
   final String id;
   final String title;
@@ -25,8 +23,8 @@ class AppNotification {
     DateTime createdAt = DateTime.now();
     final rawDate = data['createdAt'];
     if (rawDate != null) {
-      if (rawDate is Timestamp) {
-        createdAt = rawDate.toDate();
+      if (rawDate is DateTime) {
+        createdAt = rawDate;
       } else if (rawDate is String) {
         createdAt = DateTime.tryParse(rawDate) ?? DateTime.now();
       }
@@ -51,7 +49,7 @@ class AppNotification {
       'type': type,
       'targetType': targetType,
       'targetId': targetId,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
       'isRead': isRead,
     };
   }

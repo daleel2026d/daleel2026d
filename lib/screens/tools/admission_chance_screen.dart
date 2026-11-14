@@ -5,7 +5,6 @@ import '../../models/college_model.dart';
 import '../../services/firestore_service.dart';
 import '../../services/app_localizations.dart';
 import '../../widgets/custom_cached_image.dart';
-import 'university_compare_screen.dart';
 import 'student_wishlist_screen.dart';
 import '../university_details_screen.dart';
 
@@ -704,7 +703,7 @@ class _AdmissionChanceScreenState extends State<AdmissionChanceScreen> {
       child: Row(
         children: [
           ChoiceChip(
-            label: Text('${isAr ? "الكل" : "All"} (${_results.length})'),
+            label: Text(isAr ? "الكل" : "All"),
             selected: _activeFilterLevel == null,
             onSelected: (val) {
               if (val) setState(() => _activeFilterLevel = null);
@@ -713,7 +712,7 @@ class _AdmissionChanceScreenState extends State<AdmissionChanceScreen> {
           const SizedBox(width: 8),
           ChoiceChip(
             label: Text(
-              '${isAr ? "🟢 فرصة قوية" : "🟢 High"} ($high)',
+              isAr ? "🟢 فرصة قوية" : "🟢 High",
             ),
             selected: _activeFilterLevel == ChanceLevel.high,
             onSelected: (val) {
@@ -723,7 +722,7 @@ class _AdmissionChanceScreenState extends State<AdmissionChanceScreen> {
           const SizedBox(width: 8),
           ChoiceChip(
             label: Text(
-              '${isAr ? "🟡 تنافسية" : "🟡 Competitive"} ($medium)',
+              isAr ? "🟡 تنافسية" : "🟡 Competitive",
             ),
             selected: _activeFilterLevel == ChanceLevel.medium,
             onSelected: (val) {
@@ -733,7 +732,7 @@ class _AdmissionChanceScreenState extends State<AdmissionChanceScreen> {
           const SizedBox(width: 8),
           ChoiceChip(
             label: Text(
-              '${isAr ? "🔴 طموحة/موازي" : "🔴 Ambitious"} ($low)',
+              isAr ? "🔴 طموحة/موازي" : "🔴 Ambitious",
             ),
             selected: _activeFilterLevel == ChanceLevel.low,
             onSelected: (val) {
@@ -914,23 +913,6 @@ class _AdmissionChanceScreenState extends State<AdmissionChanceScreen> {
                           ),
                         );
                       }
-                    },
-                  ),
-                  // مقارنة
-                  IconButton(
-                    icon: const Icon(Icons.compare_arrows_rounded, size: 20),
-                    tooltip: isAr ? 'مقارنة' : 'Compare',
-                    color: AppColors.primaryDark,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => UniversityCompareScreen(
-                            preselectedCollege1: item.college,
-                            preselectedUni1: item.university,
-                          ),
-                        ),
-                      );
                     },
                   ),
                   // تفاصيل الجامعة
